@@ -170,9 +170,12 @@
         const statusOverlay = document.getElementById('status-overlay');
         const statusText = document.getElementById('status-text');
 
-        let localStream = new MediaStream(); // Initialize with empty stream just in case
+        let localStream = new MediaStream(); 
         let peerConnection;
         let signalingSocket;
+        
+        // NEW: Queue to hold ICE candidates if they arrive too early
+        let iceCandidatesQueue = []; 
 
         const iceConfiguration = {
             iceServers: [
@@ -182,15 +185,13 @@
         };
 
         async function startCall() {
-            // 1. Try to get Camera and Mic. Handle specific errors gracefully.
+            // 1. Try to get Camera and Mic.
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-                // Add tracks individually so we maintain our localStream object reference
                 stream.getTracks().forEach(track => localStream.addTrack(track));
                 localVideo.srcObject = localStream;
             } catch (err) {
                 console.warn("Media access failed:", err);
-                
                 let errorMsg = "Error accessing media devices.";
                 if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
                     errorMsg = "No camera/mic detected. Check physical connection.";
@@ -202,11 +203,9 @@
 
                 alert(errorMsg + "\n\nJoining call in view-only mode.");
                 
-                // Hide video and show placeholder
                 document.getElementById('local-video').style.display = 'none';
                 document.getElementById('no-cam-placeholder').style.display = 'flex';
                 
-                // Update UI buttons to reflect "off" state
                 const vidBtn = document.getElementById('toggle-video');
                 vidBtn.classList.add('active-off');
                 vidBtn.querySelector('i').classList.replace('bx-video', 'bx-video-off');
@@ -218,7 +217,7 @@
                 isAudioMuted = true;
             }
 
-            // 2. Connect to Django Channels WebSocket for signaling
+            // 2. Connect to Django Channels WebSocket
             const wsProtocol = window.location.protocol === "https:" ? "wss://" : "ws://";
             signalingSocket = new WebSocket(`${wsProtocol}${window.location.host}/ws/call/${threadId}/`);
 
@@ -233,64 +232,87 @@
             signalingSocket.onmessage = async (e) => {
                 const data = JSON.parse(e.data);
 
-                if (data.type === 'peer-joined' && data.username !== username) {
-                    statusText.innerText = "Connecting...";
-                    createPeerConnection();
-                    const offer = await peerConnection.createOffer();
-                    await peerConnection.setLocalDescription(offer);
-                    signalingSocket.send(JSON.stringify({ 'type': 'offer', 'offer': offer, 'username': username }));
-                }
+                // Ignore our own messages
+                if (data.username === username) return;
 
-                if (data.type === 'offer' && data.username !== username) {
-                    statusText.innerText = "Connecting...";
-                    createPeerConnection();
-                    await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
-                    const answer = await peerConnection.createAnswer();
-                    await peerConnection.setLocalDescription(answer);
-                    signalingSocket.send(JSON.stringify({ 'type': 'answer', 'answer': answer, 'username': username }));
-                }
-
-                if (data.type === 'answer' && data.username !== username) {
-                    await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
-                }
-
-                if (data.type === 'ice-candidate' && data.username !== username) {
-                    try {
-                        await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
-                    } catch (e) {
-                        console.error('Error adding received ice candidate', e);
+                try {
+                    if (data.type === 'peer-joined') {
+                        statusText.innerText = "Connecting...";
+                        createPeerConnection();
+                        const offer = await peerConnection.createOffer();
+                        await peerConnection.setLocalDescription(offer);
+                        signalingSocket.send(JSON.stringify({ 'type': 'offer', 'offer': offer, 'username': username }));
                     }
-                }
 
-                if (data.type === 'peer-left' && data.username !== username) {
-                    statusText.innerText = "The other user left the call.";
-                    statusOverlay.style.opacity = '1';
-                    statusOverlay.style.display = 'flex';
-                    remoteVideo.srcObject = null;
-                    if(peerConnection) {
-                        peerConnection.close();
-                        peerConnection = null;
+                    if (data.type === 'offer') {
+                        statusText.innerText = "Connecting...";
+                        createPeerConnection();
+                        await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
+                        
+                        const answer = await peerConnection.createAnswer();
+                        await peerConnection.setLocalDescription(answer);
+                        signalingSocket.send(JSON.stringify({ 'type': 'answer', 'answer': answer, 'username': username }));
+
+                        // FIX: Process any ICE candidates that were queued while waiting for the offer
+                        while(iceCandidatesQueue.length) {
+                            await peerConnection.addIceCandidate(iceCandidatesQueue.shift());
+                        }
                     }
+
+                    if (data.type === 'answer') {
+                        await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+                        
+                        // FIX: Process any ICE candidates that were queued while waiting for the answer
+                        while(iceCandidatesQueue.length) {
+                            await peerConnection.addIceCandidate(iceCandidatesQueue.shift());
+                        }
+                    }
+
+                    if (data.type === 'ice-candidate') {
+                        const candidate = new RTCIceCandidate(data.candidate);
+                        
+                        // FIX: If the remote description isn't set yet, queue the candidate instead of crashing!
+                        if (peerConnection && peerConnection.remoteDescription) {
+                            await peerConnection.addIceCandidate(candidate);
+                        } else {
+                            iceCandidatesQueue.push(candidate);
+                        }
+                    }
+
+                    if (data.type === 'peer-left') {
+                        statusText.innerText = "The other user left the call.";
+                        statusOverlay.style.opacity = '1';
+                        statusOverlay.style.display = 'flex';
+                        remoteVideo.srcObject = null;
+                        if(peerConnection) {
+                            peerConnection.close();
+                            peerConnection = null;
+                        }
+                        iceCandidatesQueue = []; // Clear queue
+                    }
+                } catch (error) {
+                    console.error("Error in signaling process:", error);
                 }
             };
         }
 
         function createPeerConnection() {
+            // FIX: If a connection already exists, don't overwrite it!
+            if (peerConnection) return; 
+
             peerConnection = new RTCPeerConnection(iceConfiguration);
 
-            // Add our local stream tracks to the connection (if any exist)
             localStream.getTracks().forEach(track => {
                 peerConnection.addTrack(track, localStream);
             });
 
-            // Handle incoming remote stream
             peerConnection.ontrack = (event) => {
+                console.log("Stream received!"); // Helpful for debugging
                 remoteVideo.srcObject = event.streams[0];
                 statusOverlay.style.opacity = '0'; 
                 setTimeout(() => statusOverlay.style.display = 'none', 500);
             };
 
-            // Send network candidates to the other peer via WebSocket
             peerConnection.onicecandidate = (event) => {
                 if (event.candidate) {
                     signalingSocket.send(JSON.stringify({
@@ -306,7 +328,6 @@
 
         let isAudioMuted = false;
         async function toggleAudio() {
-            // If no audio track exists, try to get permission again
             if(localStream.getAudioTracks().length === 0) {
                 try {
                     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -315,7 +336,6 @@
                     
                     if(peerConnection) {
                         peerConnection.addTrack(audioTrack, localStream);
-                        // Trigger renegotiation for the new track
                         const offer = await peerConnection.createOffer();
                         await peerConnection.setLocalDescription(offer);
                         signalingSocket.send(JSON.stringify({ 'type': 'offer', 'offer': offer, 'username': username }));
@@ -325,12 +345,10 @@
                     return alert("Cannot access microphone: " + err.message);
                 }
             } else {
-                // Normal toggle
                 isAudioMuted = !isAudioMuted;
                 localStream.getAudioTracks()[0].enabled = !isAudioMuted;
             }
 
-            // Update UI
             const btn = document.getElementById('toggle-audio');
             const icon = btn.querySelector('i');
             if(isAudioMuted) {
@@ -344,7 +362,6 @@
 
         let isVideoOff = false;
         async function toggleVideo() {
-            // If no video track exists, try to get permission again
             if(localStream.getVideoTracks().length === 0) {
                 try {
                     const stream = await navigator.mediaDevices.getUserMedia({ video: true });
@@ -354,14 +371,12 @@
                     
                     if(peerConnection) {
                         peerConnection.addTrack(videoTrack, localStream);
-                        // Trigger renegotiation for the new track
                         const offer = await peerConnection.createOffer();
                         await peerConnection.setLocalDescription(offer);
                         signalingSocket.send(JSON.stringify({ 'type': 'offer', 'offer': offer, 'username': username }));
                     }
                     isVideoOff = false;
                     
-                    // Show local video feed UI
                     document.getElementById('local-video').style.display = 'block';
                     document.getElementById('no-cam-placeholder').style.display = 'none';
 
@@ -369,12 +384,10 @@
                     return alert("Cannot access camera: " + err.message);
                 }
             } else {
-                // Normal toggle
                 isVideoOff = !isVideoOff;
                 localStream.getVideoTracks()[0].enabled = !isVideoOff;
             }
 
-            // Update UI
             const btn = document.getElementById('toggle-video');
             const icon = btn.querySelector('i');
             if(isVideoOff) {
@@ -388,18 +401,16 @@
 
         function endCall() {
             if (peerConnection) peerConnection.close();
-            if (signalingSocket) {
+            if (signalingSocket && signalingSocket.readyState === WebSocket.OPEN) {
                 signalingSocket.send(JSON.stringify({ 'type': 'peer-left', 'username': username }));
                 signalingSocket.close();
             }
             localStream.getTracks().forEach(track => track.stop());
-            window.location.href = '/direct/inbox/'; // Redirect back to inbox
+            window.location.href = '/direct/inbox/'; 
         }
 
-        // Start everything when page loads
         window.addEventListener('load', startCall);
         
-        // Clean up if user closes the tab
         window.addEventListener('beforeunload', () => {
             if (signalingSocket && signalingSocket.readyState === WebSocket.OPEN) {
                 signalingSocket.send(JSON.stringify({ 'type': 'peer-left', 'username': username }));
