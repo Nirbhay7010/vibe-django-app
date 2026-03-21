@@ -14,9 +14,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure--mdz_z)f)*yrd4-j7o48ti#awp)6!*lk+#zv13q7vx^!g*vyp!'
 
 # SECURITY WARNING: don't run with debug turned on in production!
+# Note: You usually set this to False in production, but leaving it True for now helps debug initial Railway errors.
 DEBUG = True
 
-ALLOWED_HOSTS = []
+# RAILWAY UPDATE: Allow Railway domains and public access
+ALLOWED_HOSTS = ['*']
+CSRF_TRUSTED_ORIGINS = ['https://*.up.railway.app']
 
 # Application definition
 INSTALLED_APPS = [
@@ -36,6 +39,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # RAILWAY UPDATE: Added for static files
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -101,6 +105,7 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'  # RAILWAY UPDATE: Where Whitenoise collects static files
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
