@@ -1,0 +1,661 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vibe | Reels</title>
+    <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: #000;
+            color: #fff;
+            overflow: hidden;
+        }
+
+        .reels-container {
+            height: 100vh;
+            width: 100%;
+            max-width: 450px;
+            margin: 0 auto;
+            overflow-y: scroll;
+            scroll-snap-type: y mandatory;
+            scroll-behavior: smooth;
+            position: relative;
+            background: #000;
+        }
+
+        .reels-container::-webkit-scrollbar {
+            display: none;
+        }
+
+        .no-scroll {
+            overflow-y: hidden !important;
+        }
+
+        .reel-item {
+            height: 100vh;
+            width: 100%;
+            scroll-snap-align: start;
+            position: relative;
+            background: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .reel-video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            cursor: pointer;
+        }
+
+        .video-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 40%;
+            background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%);
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .reel-info {
+            position: absolute;
+            bottom: 20px;
+            left: 15px;
+            z-index: 10;
+            max-width: 75%;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .user-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .reel-avatar {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .username {
+            font-size: 15px;
+            font-weight: 600;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+        }
+
+        .follow-btn {
+            background: transparent;
+            border: 1px solid #fff;
+            color: #fff;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        /* Video Call Button Styles */
+        .call-btn {
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: #fff;
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-left: 5px;
+            cursor: pointer;
+            transition: all 0.2s;
+            backdrop-filter: blur(4px);
+        }
+
+        .call-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .call-btn i {
+            font-size: 14px;
+        }
+
+        .caption {
+            font-size: 14px;
+            line-height: 1.3;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .audio-track {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            width: 200px;
+        }
+
+        .audio-track marquee {
+            flex: 1;
+        }
+
+        .reel-actions {
+            position: absolute;
+            bottom: 20px;
+            right: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 22px;
+            z-index: 10;
+        }
+
+        .action-btn {
+            background: none;
+            border: none;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            text-shadow: 1px 1px 4px rgba(0,0,0,0.8);
+            transition: transform 0.1s;
+        }
+
+        .action-btn:active {
+            transform: scale(0.9);
+        }
+
+        .action-btn i { font-size: 28px; }
+        .action-btn span { font-size: 12px; margin-top: 5px; font-weight: 500; }
+
+        .bx-heart { color: white; }
+        .bxs-heart { color: #ff3040; } 
+        .bxs-bookmark { color: white; } /* Highlight color for saved */
+
+        .audio-disc {
+            width: 30px;
+            height: 30px;
+            border-radius: 6px;
+            object-fit: cover;
+            border: 2px solid #fff;
+            animation: spin 4s linear infinite;
+        }
+
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+        /* Slide-up Modals */
+        .bottom-sheet {
+            position: fixed; 
+            bottom: -100%;
+            left: 50%; 
+            transform: translateX(-50%); 
+            width: 100%;
+            max-width: 450px; 
+            height: 65vh;
+            background: #262626;
+            border-top-left-radius: 16px;
+            border-top-right-radius: 16px;
+            z-index: 9999; 
+            transition: bottom 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 -10px 40px rgba(0,0,0,0.5);
+        }
+
+        .bottom-sheet.active { bottom: 0; }
+
+        .drag-pill {
+            width: 40px; height: 4px; background: #555;
+            border-radius: 4px; margin: 12px auto 5px auto;
+        }
+
+        .sheet-header {
+            padding: 10px 15px 15px 15px; text-align: center;
+            border-bottom: 1px solid #363636; font-weight: 600;
+            font-size: 15px; position: relative;
+        }
+
+        .close-btn {
+            position: absolute; right: 15px; top: 10px;
+            cursor: pointer; font-size: 24px; color: #aaa;
+        }
+
+        .comments-list, .share-list {
+            flex: 1; overflow-y: auto; padding: 15px; overscroll-behavior-y: contain; 
+        }
+
+        .comment-item { display: flex; gap: 12px; margin-bottom: 20px; }
+        .comment-avatar { width: 35px; height: 35px; border-radius: 50%; background: #444; flex-shrink: 0; }
+        .comment-text { font-size: 14px; line-height: 1.4; }
+        .comment-text strong { font-weight: 600; margin-right: 5px; }
+
+        .comment-input-area {
+            display: flex; align-items: center; padding: 15px;
+            border-top: 1px solid #363636; background: #262626; gap: 10px;
+        }
+        .comment-input-area img { width: 35px; height: 35px; border-radius: 50%; object-fit: cover; }
+        .comment-input-area input { flex: 1; background: transparent; border: none; color: white; font-size: 14px; outline: none; }
+        .comment-input-area button { background: none; border: none; color: #0095f6; font-weight: 600; font-size: 14px; cursor: pointer; }
+
+        .top-nav {
+            position: absolute; top: 0; left: 0; width: 100%;
+            padding: 20px; z-index: 50; display: flex;
+            justify-content: space-between; align-items: center; pointer-events: none;
+        }
+        .top-nav h2 { font-size: 20px; text-shadow: 1px 1px 4px rgba(0,0,0,0.8); }
+        .back-nav { color: white; font-size: 28px; text-decoration: none; pointer-events: auto; text-shadow: 1px 1px 4px rgba(0,0,0,0.8); }
+        
+        /* Options Menu Button Hover */
+        .option-item:hover { background: #333; }
+    </style>
+</head>
+<body>
+
+{% csrf_token %}
+
+<div class="top-nav">
+    <a href="{% url 'Vibe' %}" class="back-nav"><i class='bx bx-left-arrow-alt'></i></a>
+    <h2>Reels</h2>
+    <div style="width: 28px;"></div>
+</div>
+
+<div class="reels-container">
+    {% for reel in reels %}
+    <div class="reel-item" id="reel-{{ reel.id }}">
+        
+        <video class="reel-video" loop onclick="togglePlay(this)">
+            <source src="{{ reel.video.url }}" type="video/mp4">
+        </video>
+        
+        <div class="video-overlay"></div>
+
+        <div class="reel-info">
+            <div class="user-header">
+                {% if reel.user.profile.profile_image %}
+                    <img src="{{ reel.user.profile.profile_image.url }}" class="reel-avatar">
+                {% else %}
+                    <div class="reel-avatar" style="background:#444;"></div>
+                {% endif %}
+                <span class="username">{{ reel.user.username }}</span>
+                
+                {% if request.user != reel.user %}
+                    <button class="follow-btn" onclick="toggleFollow({{ reel.user.id }}, this)">Follow</button>
+                    <button class="call-btn" onclick="startVideoCall({{ reel.user.id }})" title="Video Call">
+                        <i class='bx bx-video'></i>
+                    </button>
+                {% endif %}
+            </div>
+            
+            <p class="caption">{{ reel.caption }}</p>
+            
+            <div class="audio-track">
+                <i class='bx bx-music'></i>
+                <marquee scrollamount="4">Original Audio • {{ reel.user.username }}</marquee>
+            </div>
+        </div>
+
+        <div class="reel-actions">
+            <button class="action-btn" onclick="likeReel({{ reel.id }})">
+                <i id="like-icon-{{ reel.id }}" class='bx {% if request.user in reel.likes.all %}bxs-heart{% else %}bx-heart{% endif %}'></i>
+                <span id="like-count-{{ reel.id }}">{{ reel.likes.count }}</span>
+            </button>
+            
+            <button class="action-btn" onclick="toggleComments({{ reel.id }})">
+                <i class='bx bx-message-rounded'></i>
+                <span id="comment-count-{{ reel.id }}">{{ reel.comments.count }}</span>
+            </button>
+            
+            <button class="action-btn" onclick="toggleShare({{ reel.id }})">
+                <i class='bx bx-send'></i>
+            </button>
+
+            <button class="action-btn" onclick="toggleOptions({{ reel.id }})">
+                <i class='bx bx-dots-vertical-rounded'></i>
+            </button>
+
+            <img src="{% if reel.user.profile.profile_image %}{{ reel.user.profile.profile_image.url }}{% else %}https://ui-avatars.com/api/?name={{ reel.user.username }}&background=333&color=fff{% endif %}" class="audio-disc">
+        </div>
+
+        <div class="bottom-sheet" id="comments-sheet-{{ reel.id }}">
+            <div class="drag-pill"></div>
+            <div class="sheet-header">
+                Comments
+                <i class='bx bx-x close-btn' onclick="toggleComments({{ reel.id }})"></i>
+            </div>
+            <div class="comments-list" id="comments-list-{{ reel.id }}">
+                {% for comment in reel.comments.all %}
+                <div class="comment-item">
+                    <div class="comment-avatar">
+                        {% if comment.user.profile.profile_image %}
+                            <img src="{{ comment.user.profile.profile_image.url }}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">
+                        {% endif %}
+                    </div>
+                    <div class="comment-text"><strong>{{ comment.user.username }}</strong> {{ comment.text }}</div>
+                </div>
+                {% empty %}
+                <div class="comment-item" style="color: #888; justify-content:center; padding-top:20px;">No comments yet.</div>
+                {% endfor %}
+            </div>
+            <div class="comment-input-area">
+                {% if request.user.profile.profile_image %}
+                    <img src="{{ request.user.profile.profile_image.url }}">
+                {% else %}
+                    <div style="width:35px; height:35px; border-radius:50%; background:#444;"></div>
+                {% endif %}
+                <input type="text" id="comment-input-{{ reel.id }}" placeholder="Add a comment...">
+                <button onclick="postComment({{ reel.id }})">Post</button>
+            </div>
+        </div>
+
+        <div class="bottom-sheet" id="share-sheet-{{ reel.id }}">
+            <div class="drag-pill"></div>
+            <div class="sheet-header">
+                Send
+                <i class='bx bx-x close-btn' onclick="toggleShare({{ reel.id }})"></i>
+            </div>
+            <div class="share-list">
+                {% for thread in user_threads %}
+                <div class="thread-item" style="display:flex; align-items:center; justify-content:space-between; padding:12px 0; border-bottom:1px solid #363636;">
+                    <div style="display:flex; align-items:center; gap:12px;">
+                        <div style="width:40px; height:40px; border-radius:50%; background:#444; display:flex; align-items:center; justify-content:center;"><i class='bx bx-user'></i></div>
+                        <span style="font-weight:600; font-size:14px;">
+                            {% for p in thread.participants.all %}{% if p != request.user %}{{ p.username }}{% endif %}{% endfor %}
+                        </span>
+                    </div>
+                    <button class="send-btn" id="send-btn-{{ reel.id }}-{{ thread.id }}" onclick="shareReel({{ reel.id }}, {{ thread.id }})" style="background:#0095f6; color:#fff; border:none; padding:6px 16px; border-radius:6px; font-weight:600; cursor:pointer;">Send</button>
+                </div>
+                {% empty %}
+                <div style="color: #888; text-align: center; padding-top:20px;">No active chats to share with.</div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="bottom-sheet" id="options-sheet-{{ reel.id }}" style="height: auto; padding-bottom: 20px;">
+            <div class="drag-pill"></div>
+            <div class="sheet-header">
+                Options
+                <i class='bx bx-x close-btn' onclick="toggleOptions({{ reel.id }})"></i>
+            </div>
+            <div style="padding: 15px; display: flex; flex-direction: column; gap: 5px;">
+                <button class="option-item" onclick="saveReel({{ reel.id }}, this)" style="display:flex; align-items:center; gap:15px; background:none; border:none; color:white; font-size:16px; cursor:pointer; width:100%; text-align:left; padding:15px 10px; border-radius:8px; transition: 0.2s;">
+                    <i class='bx {% if request.user in reel.saved_by.all %}bxs-bookmark{% else %}bx-bookmark{% endif %}' style="font-size:24px;"></i> 
+                    <span class="save-text">{% if request.user in reel.saved_by.all %}Saved{% else %}Save{% endif %}</span>
+                </button>
+
+                <button class="option-item" onclick="markNotInterested({{ reel.id }})" style="display:flex; align-items:center; gap:15px; background:none; border:none; color:white; font-size:16px; cursor:pointer; width:100%; text-align:left; padding:15px 10px; border-radius:8px; transition: 0.2s;">
+                    <i class='bx bx-hide' style="font-size:24px;"></i> 
+                    <span>Not Interested</span>
+                </button>
+            </div>
+        </div>
+
+    </div>
+    {% empty %}
+    <div style="height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #888; text-align: center;">
+        <i class='bx bx-movie-play' style="font-size: 80px; margin-bottom: 15px; color: #333;"></i>
+        <h2 style="color: #fff; margin-bottom: 10px;">No Reels Yet</h2>
+        <p>Go to the Home feed and click Create -> Reel to share the first video!</p>
+    </div>
+    {% endfor %}
+</div>
+
+<script>
+    const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    const reelsContainer = document.querySelector('.reels-container');
+
+    function closeAllSheets() {
+        document.querySelectorAll('.bottom-sheet').forEach(sheet => sheet.classList.remove('active'));
+        if (reelsContainer) {
+            reelsContainer.classList.remove('no-scroll');
+        }
+    }
+
+    function togglePlay(video) {
+        if (video.paused) { video.play(); } 
+        else { video.pause(); }
+    }
+
+    const videos = document.querySelectorAll('.reel-video');
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.play().catch(e => console.log("Autoplay prevented."));
+            } else {
+                entry.target.pause();
+                entry.target.currentTime = 0; 
+                closeAllSheets(); 
+            }
+        });
+    }, { threshold: 0.6 });
+
+    videos.forEach(video => observer.observe(video));
+
+    function toggleFollow(userId, btnElement) {
+        const originalText = btnElement.innerText;
+        btnElement.innerText = "...";
+
+        fetch(`/follow/${userId}/`, { 
+            method: 'POST',
+            headers: { 
+                'X-CSRFToken': csrftoken, 
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest' 
+            }
+        })
+        .then(async res => {
+            if (!res.ok) throw new Error(`Server returned ${res.status}`);
+            return res.json();
+        })
+        .then(data => {
+            if (originalText === "Follow") {
+                btnElement.innerText = "Following";
+                btnElement.style.background = "rgba(255,255,255,0.2)"; 
+                btnElement.style.border = "none";
+            } else {
+                btnElement.innerText = "Follow";
+                btnElement.style.background = "transparent";
+                btnElement.style.border = "1px solid #fff";
+            }
+        })
+        .catch(error => {
+            btnElement.innerText = originalText;
+        });
+    }
+
+    function likeReel(reelId) {
+        fetch(`/api/reels/${reelId}/like/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': csrftoken, 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.status === 'success') {
+                const icon = document.getElementById(`like-icon-${reelId}`);
+                document.getElementById(`like-count-${reelId}`).innerText = data.like_count;
+                if (data.liked) {
+                    icon.classList.remove('bx-heart'); icon.classList.add('bxs-heart');
+                } else {
+                    icon.classList.remove('bxs-heart'); icon.classList.add('bx-heart');
+                }
+            }
+        });
+    }
+
+    function toggleComments(reelId) {
+        const sheet = document.getElementById(`comments-sheet-${reelId}`);
+        const isActive = sheet.classList.contains('active');
+        closeAllSheets(); 
+        if (!isActive) { sheet.classList.add('active'); reelsContainer.classList.add('no-scroll'); }
+    }
+
+    function postComment(reelId) {
+        const inputField = document.getElementById(`comment-input-${reelId}`);
+        const text = inputField.value;
+        if (text.trim() === '') return;
+
+        fetch(`/api/reels/${reelId}/comment/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': csrftoken, 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+            body: JSON.stringify({ text: text })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.status === 'success') {
+                inputField.value = '';
+                document.getElementById(`comment-count-${reelId}`).innerText = data.comment_count;
+                const list = document.getElementById(`comments-list-${reelId}`);
+                if(list.innerText.includes("No comments yet")) { list.innerHTML = ''; }
+                list.innerHTML += `
+                    <div class="comment-item">
+                        <div class="comment-avatar"><img src="https://ui-avatars.com/api/?name=${data.username}&background=444&color=fff" style="width:100%; height:100%; border-radius:50%;"></div>
+                        <div class="comment-text"><strong>${data.username}</strong> ${data.text}</div>
+                    </div>
+                `;
+                list.scrollTop = list.scrollHeight;
+            }
+        });
+    }
+
+    function toggleShare(reelId) {
+        const sheet = document.getElementById(`share-sheet-${reelId}`);
+        const isActive = sheet.classList.contains('active');
+        closeAllSheets(); 
+        if (!isActive) { sheet.classList.add('active'); reelsContainer.classList.add('no-scroll'); }
+    }
+
+    function shareReel(reelId, threadId) {
+        const btn = document.getElementById(`send-btn-${reelId}-${threadId}`);
+        btn.innerText = "Sent"; btn.disabled = true;
+
+        fetch(`/api/reels/${reelId}/share/${threadId}/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': csrftoken, 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.status === 'success') {
+                btn.style.backgroundColor = "transparent"; btn.style.color = "#888"; btn.style.border = "1px solid #555";
+                setTimeout(() => {
+                    toggleShare(reelId); btn.innerText = "Send";
+                    btn.style.backgroundColor = "#0095f6"; btn.style.color = "white"; btn.style.border = "none"; btn.disabled = false;
+                }, 1000);
+            }
+        });
+    }
+
+    // --- NEW OPTIONS MENU FUNCTIONS ---
+    function toggleOptions(reelId) {
+        const sheet = document.getElementById(`options-sheet-${reelId}`);
+        const isActive = sheet.classList.contains('active');
+        closeAllSheets(); 
+        if (!isActive) { sheet.classList.add('active'); reelsContainer.classList.add('no-scroll'); }
+    }
+
+    function saveReel(reelId, btnElement) {
+        fetch(`/api/reels/${reelId}/save/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': csrftoken, 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.status === 'success') {
+                const icon = btnElement.querySelector('i');
+                const span = btnElement.querySelector('.save-text');
+                
+                if (data.saved) {
+                    icon.classList.replace('bx-bookmark', 'bxs-bookmark');
+                    span.innerText = "Saved";
+                } else {
+                    icon.classList.replace('bxs-bookmark', 'bx-bookmark');
+                    span.innerText = "Save";
+                }
+            }
+        });
+    }
+
+    function markNotInterested(reelId) {
+        fetch(`/api/reels/${reelId}/not-interested/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': csrftoken, 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.status === 'success') {
+                closeAllSheets();
+                
+                const reelElement = document.getElementById(`reel-${reelId}`);
+                const video = reelElement.querySelector('video');
+                
+                if(video) {
+                    video.pause();
+                    video.muted = true;
+                }
+                
+                // Smooth collapse animation
+                reelElement.style.transition = "height 0.4s ease, opacity 0.4s ease";
+                reelElement.style.height = "0";
+                reelElement.style.opacity = "0";
+                
+                setTimeout(() => {
+                    reelElement.remove();
+                    // Scroll down automatically so the user isn't looking at empty space
+                    window.scrollBy({ top: 10, behavior: 'smooth' }); 
+                }, 400);
+            }
+        });
+    }
+
+    // --- NEW VIDEO CALL FUNCTION ---
+    function startVideoCall(userId) {
+        // Hit the backend to get or create a DM thread with this user
+        fetch(`/api/chat/start/${userId}/`, {
+            method: 'POST',
+            headers: { 
+                'X-CSRFToken': csrftoken, 
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest' 
+            }
+        })
+        .then(res => {
+            if (!res.ok) throw new Error("Network response was not ok");
+            return res.json();
+        })
+        .then(data => {
+            if(data.thread_id) {
+                // Redirect the user to the secure video call room
+                window.location.href = `/direct/call/${data.thread_id}/`;
+            } else {
+                alert("Could not start call. Please try again.");
+            }
+        })
+        .catch(err => {
+            console.error("Call initialization error:", err);
+            alert("Error connecting to call. Check your connection.");
+        });
+    }
+</script>
+
+</body>
+</html>

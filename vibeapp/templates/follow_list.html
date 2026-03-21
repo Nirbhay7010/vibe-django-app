@@ -1,0 +1,154 @@
+<style>
+    .user-list-wrapper {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .user-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 16px;
+        transition: background 0.2s;
+    }
+
+    .user-row:hover {
+        background: #121212; /* Super dark gray for hover */
+    }
+
+    .user-info {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        text-decoration: none;
+        color: inherit;
+        flex-grow: 1;
+        overflow: hidden;
+    }
+
+    .user-avatar {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        object-fit: cover;
+        background: #000;
+        border: 1px solid #363636;
+        flex-shrink: 0;
+    }
+
+    .username-box {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        min-width: 0;
+    }
+
+    .username-text {
+        font-weight: 600;
+        font-size: 14px;
+        color: #f1f5f9;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .fullname-text {
+        font-size: 12px;
+        color: #a8a8a8;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    /* Base Button Style */
+    .btn-action {
+        padding: 6px 16px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 600;
+        background: #363636;
+        color: #fff;
+        text-decoration: none;
+        white-space: nowrap;
+        flex-shrink: 0;
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .btn-action:hover {
+        background: #262626;
+    }
+
+    /* Unfollow / Remove Specific Style (Gray outline) */
+    .btn-unfollow {
+        background: transparent;
+        color: #f1f5f9;
+        border: 1px solid #363636;
+    }
+
+    .btn-unfollow:hover {
+        border-color: #f87171;
+        color: #f87171;
+        background: transparent;
+    }
+
+    /* Follow Specific Style (Blue fill) */
+    .btn-follow {
+        background: #0095f6;
+        color: #fff;
+        border: 1px solid #0095f6;
+    }
+
+    .btn-follow:hover {
+        background: #1877f2;
+    }
+</style>
+
+<div class="user-list-wrapper">
+    {% for user_item in users %}
+    <div class="user-row">
+        
+        <a href="{% url 'user_profile' user_item.id %}" class="user-info">
+            {% if user_item.profile.profile_image %}
+                <img src="{{ user_item.profile.profile_image.url }}" class="user-avatar">
+            {% else %}
+                <img src="https://ui-avatars.com/api/?name={{ user_item.username }}" class="user-avatar">
+            {% endif %}
+            
+            <div class="username-box">
+                <span class="username-text">{{ user_item.username }}</span>
+                {% if user_item.get_full_name %}
+                    <span class="fullname-text">{{ user_item.get_full_name }}</span>
+                {% endif %}
+            </div>
+        </a>
+
+        <div style="display: flex; gap: 8px;">
+            {% if request.user == target_user and user_item != request.user %}
+                
+                {% if type == 'Following' %}
+                    <form action="{% url 'unfollow_user' user_item.id %}" method="POST" class="ajax-follow-form">
+                        {% csrf_token %}
+                        <button type="submit" class="btn-action btn-unfollow">Unfollow</button>
+                    </form>
+                {% elif type == 'Followers' %}
+                    <form action="{% url 'remove_follower' user_item.id %}" method="POST" class="ajax-remove-form">
+                        {% csrf_token %}
+                        <button type="submit" class="btn-action btn-unfollow">Remove</button>
+                    </form>
+                {% endif %}
+                
+            {% else %}
+                <a href="{% url 'user_profile' user_item.id %}" class="btn-action">View</a>
+            {% endif %}
+        </div>
+
+    </div>
+    {% empty %}
+        <div style="padding: 40px; text-align: center; color: #a8a8a8; display: flex; flex-direction: column; align-items: center; gap: 10px;">
+            <span style="font-size: 14px;">No users found.</span>
+        </div>
+    {% endfor %}
+</div>

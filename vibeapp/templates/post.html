@@ -1,0 +1,174 @@
+<!-- ================= CREATE POST MODAL (FULL WORKING) ================= -->
+
+<!-- Boxicons -->
+<link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+
+<style>
+/* ===== OVERLAY ===== */
+.post-overlay{
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  backdrop-filter: blur(6px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+
+/* ===== MODAL ===== */
+.post-box{
+  width: 420px;
+  height: 480px;
+  background: #1e2235;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.12);
+  overflow: hidden;
+  color: #fff;
+}
+
+/* ===== HEADER ===== */
+.post-header{
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 600;
+}
+
+.post-header i{
+  font-size: 22px;
+  cursor: pointer;
+  color: #aaa;
+}
+
+.post-header i:hover{
+  color: #ec4899;
+}
+
+/* ===== BODY ===== */
+.post-body{
+  height: calc(100% - 52px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ===== UPLOAD ===== */
+.upload-area{
+  text-align: center;
+}
+
+.upload-area i{
+  font-size: 64px;
+  color: #ec4899;
+}
+
+.upload-area p{
+  margin: 12px 0;
+  color: #ccc;
+}
+
+.upload-btn{
+  display: inline-block;
+  background: #ec4899;
+  color: #fff;
+  padding: 8px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.upload-btn:hover{
+  opacity: 0.9;
+}
+
+/* ===== PREVIEW ===== */
+.preview-area{
+  display: none;
+  width: 100%;
+  height: 100%;
+}
+
+.preview-area img{
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+</style>
+
+<!-- ===== TEST BUTTON (REMOVE LATER) ===== -->
+<button onclick="openPost()"
+  style="position:fixed;bottom:30px;right:30px;
+  background:#ec4899;color:#fff;border:none;
+  padding:12px 20px;border-radius:30px;
+  cursor:pointer;z-index:10001;">
+  + Create Post
+</button>
+
+<!-- ===== MODAL ===== -->
+<div class="post-overlay" id="postModal">
+  <div class="post-box" onclick="event.stopPropagation()">
+
+    <div class="post-header">
+      <span>Create new post</span>
+      <i class='bx bx-x' onclick="closePost()"></i>
+    </div>
+
+    <div class="post-body">
+
+      <div class="upload-area" id="uploadArea">
+        <i class='bx bx-images'></i>
+        <p>Drag photos and videos here</p>
+
+        <label class="upload-btn">
+          Select from computer
+          <input type="file" hidden id="postFile" accept="image/*">
+        </label>
+      </div>
+
+      <div class="preview-area" id="previewArea">
+        <img id="previewImage">
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+/* ===== OPEN MODAL ===== */
+function openPost(){
+  document.getElementById("postModal").style.display = "flex";
+}
+
+/* ===== CLOSE MODAL ===== */
+function closePost(){
+  document.getElementById("postModal").style.display = "none";
+  resetPost();
+}
+
+/* ===== RESET ===== */
+function resetPost(){
+  document.getElementById("postFile").value = "";
+  document.getElementById("uploadArea").style.display = "block";
+  document.getElementById("previewArea").style.display = "none";
+}
+
+/* ===== CLICK OUTSIDE TO CLOSE ===== */
+document.getElementById("postModal").addEventListener("click", closePost);
+
+/* ===== IMAGE PREVIEW ===== */
+document.getElementById("postFile").addEventListener("change", function(e){
+  const file = e.target.files[0];
+  if(!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(){
+    document.getElementById("previewImage").src = reader.result;
+    document.getElementById("uploadArea").style.display = "none";
+    document.getElementById("previewArea").style.display = "block";
+  };
+  reader.readAsDataURL(file);
+});
+</script>

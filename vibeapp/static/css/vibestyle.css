@@ -1,0 +1,573 @@
+/* ========== RESET & BASICS ========== */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+body {
+  background: #000000; /* Dark Theme */
+  color: #fff;
+  overflow-x: hidden;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+/* ========== LAYOUT ========== */
+.app {
+  display: flex;
+  min-height: 100vh;
+}
+
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ========== SIDEBAR (Instagram Style) ========== */
+.menu-bar {
+  width: 72px; /* Collapsed Width */
+  height: 100vh;
+  background: #000;
+  border-right: 1px solid #262626;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  padding: 24px 12px;
+  transition: width 0.3s cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* HOVER STATE: Expand Sidebar */
+.menu-bar:hover {
+  width: 245px;
+  padding: 24px 20px;
+}
+
+/* --- LOGO --- */
+.sidebar-logo {
+  height: 50px;
+  margin-bottom: 30px;
+  display: flex;
+  align-items: center;
+  padding-left: 10px;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.logo-icon {
+  font-size: 32px;
+  color: #fff;
+  min-width: 32px;
+  transition: transform 0.2s;
+}
+
+.menu-bar:hover .logo-icon {
+  transform: scale(1.1);
+}
+
+.logo-text {
+  font-family: 'Billabong', cursive, sans-serif; /* Vibe Font */
+  font-size: 28px;
+  margin-left: 15px;
+  opacity: 0;
+  transform: translateX(-10px);
+  transition: all 0.2s ease;
+}
+
+/* Show Text on Hover */
+.menu-bar:hover .logo-text {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* --- MENU ITEMS --- */
+.menu-link {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+
+.menu-link a {
+  display: flex;
+  align-items: center;
+  padding: 12px;
+  color: #f5f5f5;
+  text-decoration: none;
+  border-radius: 8px;
+  transition: background 0.2s;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.menu-link a:hover, .menu-link a.active {
+  background: rgba(255,255,255,0.1);
+}
+
+.menu-link i {
+  font-size: 26px;
+  min-width: 26px;
+  text-align: center;
+}
+
+.menu-link span {
+  margin-left: 16px;
+  font-size: 16px;
+  opacity: 0;
+  transform: translateX(-10px);
+  transition: all 0.2s ease;
+}
+
+.menu-bar:hover .menu-link span {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* --- PROFILE SECTION (CRITICAL FIX) --- */
+.sidebar-profile {
+  margin-top: auto;
+  border-top: 1px solid transparent;
+  padding-top: 10px;
+  transition: border 0.3s;
+}
+
+.menu-bar:hover .sidebar-profile {
+  border-top: 1px solid #262626;
+}
+
+.profile-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+  color: #fff;
+  padding: 10px;
+  border-radius: 8px;
+  transition: background 0.2s;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.profile-link:hover {
+  background: rgba(255,255,255,0.1);
+}
+
+/* 🔥 THIS FIXES THE GIANT IMAGE 🔥 */
+.profile-pic-small {
+  width: 28px !important;  /* Force small width */
+  height: 28px !important; /* Force small height */
+  min-width: 28px; /* Prevent shrinking */
+  border-radius: 50%;
+  object-fit: cover;
+  background: #333;
+}
+
+.profile-text {
+  display: flex;
+  flex-direction: column;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.menu-bar:hover .profile-text {
+  opacity: 1;
+}
+
+.username { font-weight: 600; font-size: 14px; }
+.view-profile { font-size: 12px; color: #a8a8a8; }
+
+/* ========== DROPDOWN (Floating) ========== */
+.create-dropdown {
+  position: fixed;
+  width: 240px;
+  background: #262626;
+  border-radius: 12px;
+  padding: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+  display: none; /* Hidden by default */
+  flex-direction: column;
+  gap: 4px;
+  z-index: 2000;
+}
+
+.create-dropdown.show {
+  display: flex;
+  animation: popIn 0.2s ease-out;
+}
+
+.create-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  color: #fff;
+  text-decoration: none;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+
+.create-item:hover {
+  background: rgba(255,255,255,0.1);
+}
+
+.create-text strong { display: block; font-size: 14px; }
+.create-text p { font-size: 12px; color: #a8a8a8; margin-top: 2px; }
+
+@keyframes popIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* ========== MOBILE (UPDATED NAV BAR) ========== */
+@media (max-width: 768px) {
+  .menu-bar {
+    width: 100%; height: 55px;
+    position: fixed; bottom: 0; top: auto;
+    flex-direction: row; justify-content: space-around; align-items: center;
+    padding: 0; border-right: none; border-top: 1px solid #262626;
+  }
+  
+  .menu-bar:hover { width: 100%; padding: 0; }
+  
+  /* Magic Trick: This allows the menu links and profile picture to perfectly space themselves in one row */
+  .menu-link { display: contents; }
+  
+  /* Hid sidebar brand and text */
+  .logo-text, .sidebar-logo, .menu-link span, .profile-text {
+    display: none !important;
+  }
+
+  /* Formatting the profile picture to match the bottom bar icons */
+  .sidebar-profile {
+    display: flex !important;
+    margin-top: 0;
+    padding-top: 0;
+    border: none !important;
+  }
+  
+  /* Matches the clickable area padding of the other icons */
+  .profile-link {
+    padding: 12px;
+  }
+
+  /* Adjust dropdown for mobile */
+  .create-dropdown {
+    left: 50% !important;
+    transform: translateX(-50%);
+    bottom: 60px !important;
+    top: auto !important;
+  }
+}
+
+/* ========================================= */
+/* MAIN CONTENT & FEED FIXES            */
+/* ========================================= */
+
+/* 1. TOP BAR & SEARCH - Fixed Layout */
+.topbar {
+  width: 100%;
+  height: 70px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 30px;
+  background: #000;
+  border-bottom: 1px solid #262626;
+  position: sticky;
+  top: 0;
+  z-index: 900; /* Behind sidebar dropdown but above feed */
+}
+
+.search-box {
+  width: 300px;
+  height: 40px;
+  background: #262626;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  padding: 0 15px;
+  color: #8e8e8e;
+}
+
+.search-box input {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #fff;
+  margin-left: 10px;
+  width: 100%;
+  font-size: 16px;
+}
+
+/* 2. FEED LAYOUT - Center it properly */
+.content {
+  display: flex;
+  justify-content: center;
+  gap: 60px; /* Gap between feed and right panel */
+  padding-top: 30px;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.feed {
+  width: 100%;
+  max-width: 600px; /* Limits the width of posts */
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* 3. STORIES - PREVENT GIANT IMAGES */
+.stories {
+  display: flex;
+  gap: 15px;
+  overflow-x: auto;
+  padding-bottom: 15px;
+  margin-bottom: 20px;
+  scrollbar-width: none; /* Hide scrollbar Firefox */
+}
+.stories::-webkit-scrollbar { display: none; } /* Hide scrollbar Chrome */
+
+.story-ring {
+  width: 66px;   /* FORCE SIZE */
+  height: 66px;  /* FORCE SIZE */
+  border-radius: 50%;
+  padding: 3px;
+  background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
+  flex-shrink: 0; /* Prevents squishing */
+}
+
+.story-ring img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  border: 3px solid #000; /* Gap between ring and image */
+}
+
+/* 4. POSTS - PREVENT GIANT HEADER ICONS */
+.post {
+  background: #000;
+  border: 1px solid #262626;
+  border-radius: 8px;
+  margin-bottom: 15px;
+}
+
+.post-header {
+  display: flex;
+  align-items: center;
+  padding: 10px;
+  gap: 10px;
+}
+
+.post-avatar {
+  width: 35px;  /* FORCE SMALL SIZE */
+  height: 35px; /* FORCE SMALL SIZE */
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.post-image img {
+  width: 100%;
+  height: auto;
+  max-height: 700px; /* Prevent extremely tall images */
+  object-fit: cover;
+  display: block;
+}
+
+/* 5. RIGHT PANEL (SUGGESTIONS) */
+.right-panel {
+  width: 320px;
+  display: block; /* Visible on desktop */
+}
+
+@media (max-width: 1100px) {
+  .right-panel { display: none; } /* Hide on smaller screens */
+  .content { justify-content: center; }
+}
+/* ========================================= */
+/* 🔥 CREATE POST MODAL (OVERLAY) FIX 🔥 */
+/* ========================================= */
+
+/* The dark background behind the popup */
+#postOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.85); /* Dimmed background */
+  z-index: 3000; /* Higher than sidebar (1000) */
+  display: none; /* Hidden by default */
+  align-items: center;
+  justify-content: center;
+}
+
+/* The actual class added by JS to show it */
+#postOverlay.show {
+  display: flex;
+  animation: fadeIn 0.2s ease-out;
+}
+
+/* The Box containing the upload/crop/filter */
+.post-modal {
+  background: #262626;
+  width: 100%;
+  max-width: 750px; /* Max width of the popup */
+  height: 80vh;     /* Fixed height */
+  max-height: 800px;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 0 20px rgba(0,0,0,0.5);
+}
+
+/* Header of the popup (Next/Back buttons) */
+.modal-header {
+  height: 50px;
+  border-bottom: 1px solid #363636;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  font-weight: 600;
+}
+
+.modal-header button {
+  background: transparent;
+  border: none;
+  color: #0095f6; /* Insta Blue */
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.modal-header h3 {
+  font-size: 16px;
+  color: #fff;
+}
+
+/* The Body area where images show */
+.modal-body {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Logic to hide/show steps */
+.step-content {
+  display: none; /* Hide all steps */
+  width: 100%;
+  height: 100%;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.step-content.active {
+  display: flex; /* Show only active step */
+}
+
+/* Image Previews in Modal */
+#cropImage, #filterImage, #finalImage {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+/* Filter Buttons Styling */
+.filter-options {
+  display: flex;
+  gap: 10px;
+  padding: 10px;
+  background: #262626;
+  width: 100%;
+  overflow-x: auto;
+}
+
+.filter-btn {
+  background: #000;
+  border: 1px solid #363636;
+  color: #fff;
+  padding: 5px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+/* Caption Text Area */
+.caption-area textarea {
+  width: 100%;
+  height: 100px;
+  background: transparent;
+  border: none;
+  color: #fff;
+  resize: none;
+  padding: 10px;
+  font-size: 14px;
+  outline: none;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+/* ================= LOADER ANIMATION ================= */
+.loading-overlay {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.7);
+  display: none; /* Hidden by default */
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  border-radius: 12px;
+}
+
+.spinner {
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  border-top: 4px solid #0095f6; /* Insta Blue */
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+  margin-bottom: 10px;
+}
+
+.loading-text {
+  color: #fff;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.notification-badge {
+    background: #ed4956;
+    color: white;
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 10px;
+    position: absolute;
+    margin-left: -10px;
+    margin-top: -5px;
+    font-weight: bold;
+}

@@ -1,0 +1,248 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Vibe • Sign up</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Boxicons -->
+  <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont;
+    }
+
+    body {
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at top left, #1e293b, transparent 40%),
+        radial-gradient(circle at bottom right, #020617, transparent 40%),
+        #020617;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #e5e7eb;
+    }
+
+    .signup-container {
+      width: 100%;
+      max-width: 430px;
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(20px);
+      border-radius: 20px;
+      padding: 36px 34px;
+      border: 1px solid rgba(255,255,255,0.08);
+      box-shadow:
+        0 25px 60px rgba(0,0,0,0.7),
+        inset 0 0 0 1px rgba(255,255,255,0.03);
+      animation: fadeUp 0.6s ease;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .logo {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+
+    .logo i {
+      font-size: 38px;
+      background: linear-gradient(45deg, #ff006a, #ff9900);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      filter: drop-shadow(0 0 10px rgba(255,0,106,0.4));
+    }
+
+    .logo span {
+      font-size: 28px;
+      font-weight: 800;
+    }
+
+    h2 {
+      text-align: center;
+      font-size: 20px;
+      margin-bottom: 22px;
+    }
+
+    /* ===== MESSAGES ===== */
+    .messages {
+      margin-bottom: 16px;
+    }
+
+    .alert {
+      padding: 12px 14px;
+      border-radius: 10px;
+      font-size: 14px;
+      text-align: center;
+      margin-bottom: 10px;
+    }
+
+    .alert.error {
+      background: rgba(239, 68, 68, 0.15);
+      color: #fecaca;
+      border: 1px solid rgba(239, 68, 68, 0.4);
+    }
+
+    .alert.success {
+      background: rgba(34, 197, 94, 0.15);
+      color: #bbf7d0;
+      border: 1px solid rgba(34, 197, 94, 0.4);
+    }
+
+    form input,
+    form select {
+      width: 100%;
+      padding: 14px 16px;
+      background: rgba(2,6,23,0.9);
+      border: 1px solid rgba(148,163,184,0.2);
+      border-radius: 10px;
+      color: #fff;
+      font-size: 14px;
+      margin-bottom: 12px;
+    }
+
+    form input:focus,
+    form select:focus {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59,130,246,0.2);
+    }
+
+    .birthday {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .info {
+      font-size: 12px;
+      color: #94a3b8;
+      margin: 14px 0 18px;
+      text-align: center;
+    }
+
+    button {
+      width: 100%;
+      padding: 14px;
+      border-radius: 12px;
+      border: none;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #2563eb, #3b82f6);
+      color: white;
+    }
+
+    .login-link {
+      text-align: center;
+      margin-top: 22px;
+      font-size: 14px;
+    }
+
+    .login-link a {
+      color: #60a5fa;
+      font-weight: 600;
+      text-decoration: none;
+    }
+
+    .meta {
+      margin-top: 26px;
+      text-align: center;
+      font-size: 12px;
+      color: #64748b;
+    }
+  </style>
+</head>
+<body>
+
+<div class="signup-container">
+
+  <div class="logo">
+    <i class='bx bx-pulse'></i>
+    <span>Vibe</span>
+  </div>
+
+  <h2>Sign up to see moments from your friends</h2>
+
+  <!-- ✅ DJANGO MESSAGES -->
+  {% if messages %}
+    <div class="messages">
+      {% for message in messages %}
+        <div class="alert {{ message.tags }}">
+          {{ message }}
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <form method="POST">
+    {% csrf_token %}
+
+    <input type="email" name="email" placeholder="Mobile number or email" required>
+    <input type="password" name="password" placeholder="Password" required>
+
+    <div class="birthday">
+      <select name="month"><option>Month</option></select>
+      <select name="day"><option>Day</option></select>
+      <select name="year"><option>Year</option></select>
+    </div>
+
+    <input type="text" name="full_name" placeholder="Full name" required>
+    <input type="text" name="username" placeholder="Username" required>
+
+    <p class="info">
+      People who use our service may have uploaded your contact information to Vibe.
+    </p>
+
+    <button type="submit">Create account</button>
+  </form>
+
+  <div class="login-link">
+    Already have an account?
+    <a href="{% url 'login' %}">Log in</a>
+  </div>
+
+  <div class="meta">© Vibe</div>
+</div>
+
+<script>
+  const monthSelect = document.querySelector('[name="month"]');
+  const daySelect = document.querySelector('[name="day"]');
+  const yearSelect = document.querySelector('[name="year"]');
+
+  const months = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+  months.forEach((m, i) => {
+    let o = document.createElement("option");
+    o.value = i + 1;
+    o.textContent = m;
+    monthSelect.appendChild(o);
+  });
+
+  for (let i = 1; i <= 31; i++) {
+    let o = document.createElement("option");
+    o.value = i;
+    o.textContent = i;
+    daySelect.appendChild(o);
+  }
+
+  const year = new Date().getFullYear();
+  for (let i = year; i >= 1920; i--) {
+    let o = document.createElement("option");
+    o.value = i;
+    o.textContent = i;
+    yearSelect.appendChild(o);
+  }
+</script>
+
+</body>
+</html>

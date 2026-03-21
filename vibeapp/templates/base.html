@@ -1,0 +1,714 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Vibe – Social Dashboard{% endblock %}</title>
+
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2280%22 fill=%22%230095f6%22>V</text></svg>">
+  <link rel="stylesheet" href="{% static 'css/vibestyle.css' %}">
+  <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/cropperjs@1.6.2/dist/cropper.min.css" />
+
+  <style>
+    /* =========================================================
+       ✨ PREMIUM SLIDING NOTIFICATION PANEL STYLES ✨
+       ========================================================= */
+    .notification-side-panel {
+        position: fixed; 
+        top: 0; 
+        left: -380px; 
+        width: 380px; 
+        height: 100vh;
+        background: #000; 
+        color: #fff; 
+        z-index: 9999;
+        transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+        border-right: 1px solid #262626;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 4px 0 24px rgba(0,0,0,0.6);
+    }
+    
+    .notification-side-panel.active { transform: translateX(455px); }
+    
+    .panel-header { 
+        display: flex; justify-content: space-between; align-items: center; 
+        padding: 24px 20px 16px 20px; 
+        border-bottom: 1px solid #262626; 
+    }
+    .panel-header h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: 0.5px; }
+    .panel-header button { 
+        background: transparent; border: none; color: #a8a8a8; font-size: 30px; 
+        cursor: pointer; transition: color 0.2s ease; display: flex; align-items: center; 
+    }
+    .panel-header button:hover { color: #fff; }
+
+    .notif-list { flex: 1; overflow-y: auto; padding: 8px 0; }
+    
+    .notif-list::-webkit-scrollbar { width: 6px; }
+    .notif-list::-webkit-scrollbar-track { background: transparent; }
+    .notif-list::-webkit-scrollbar-thumb { background: #363636; border-radius: 4px; }
+    .notif-list::-webkit-scrollbar-thumb:hover { background: #555; }
+
+    .notif-item { 
+        display: flex; flex-direction: column; 
+        padding: 16px 20px; gap: 12px;
+        transition: background 0.2s ease;
+        position: relative;
+    }
+    .notif-item:hover { background: #121212; }
+    
+    .notif-item.unread { background: #001a2c; } 
+    .notif-item.unread:hover { background: #00243d; }
+    .notif-item.unread::before {
+        content: ''; position: absolute; top: 50%; right: 20px; transform: translateY(-50%);
+        width: 8px; height: 8px; background: #0095f6; border-radius: 50%; 
+        box-shadow: 0 0 8px rgba(0,149,246,0.6);
+    }
+
+    .notif-content { display: flex; align-items: center; gap: 14px; width: 100%; }
+    .notif-avatar { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 1px solid #262626; }
+    
+    .notif-text { margin: 0; font-size: 14px; line-height: 1.4; color: #e0e0e0; flex: 1; padding-right: 15px; }
+    .notif-text strong { color: #fff; font-weight: 600; }
+    .notif-time { color: #8e8e8e; font-size: 12px; margin-top: 4px; display: block; }
+
+    .notif-actions { 
+        display: flex; gap: 8px; width: 100%; 
+        padding-left: 58px; 
+        box-sizing: border-box;
+    }
+    
+    .btn-confirm, .btn-remove {
+        flex: 1; 
+        padding: 8px 0; border-radius: 8px; font-size: 14px; font-weight: 600;
+        text-align: center; text-decoration: none; cursor: pointer; border: none;
+        transition: all 0.2s ease;
+    }
+    .btn-confirm { background-color: #0095f6; color: white; }
+    .btn-confirm:hover { background-color: #1877f2; transform: translateY(-1px); }
+    .btn-confirm:active { transform: translateY(0); }
+    
+    .btn-remove { background-color: #363636; color: #e0e0e0; }
+    .btn-remove:hover { background-color: #4a4a4a; color: #fff; transform: translateY(-1px); }
+    .btn-remove:active { transform: translateY(0); }
+
+    /* =========================================================
+       ✨ OPTIMIZED POST OVERLAY (MODAL) STYLES ✨
+       ========================================================= */
+    #postOverlay {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0, 0, 0, 0.85); z-index: 9999;
+        display: none; justify-content: center; align-items: center; backdrop-filter: blur(8px);
+    }
+    #postOverlay.show { display: flex !important; }
+
+    .post-modal {
+        background: #262626; width: 90%; max-width: 850px; height: 80vh; max-height: 650px;
+        border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; position: relative; color: white;
+        box-shadow: 0 15px 40px rgba(0,0,0,0.6);
+    }
+    
+    .modal-header { 
+        padding: 12px 20px; border-bottom: 1px solid #363636; 
+        display: flex; justify-content: space-between; align-items: center; 
+    }
+    .modal-header h3 { margin: 0; font-size: 16px; font-weight: 600; }
+    .modal-header button { 
+        background: transparent; border: none; color: #0095f6; font-weight: 600; 
+        cursor: pointer; font-size: 15px; transition: color 0.2s ease; 
+        display: flex; align-items: center; gap: 4px;
+    }
+    .modal-header button:hover { color: #fff; }
+
+    .modal-body { flex: 1; position: relative; background: #000; display: flex; overflow: hidden; }
+
+    .step-content { display: none; width: 100%; height: 100%; }
+    .step-content.active { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+
+    /* Upload Step Styles */
+    .upload-container { text-align: center; }
+    .upload-container i { font-size: 80px; color: #a8a8a8; margin-bottom: 15px; }
+    .upload-container p { margin-bottom: 25px; font-size: 18px; color: #e0e0e0; }
+    .upload-label { cursor: pointer; display: inline-block; padding: 10px 24px; border-radius: 8px; font-weight: 600; }
+
+    /* Edit & Caption Step Layout */
+    .edit-layout { display: flex; width: 100%; height: 100%; }
+    .preview-side { flex: 1.5; background: #000; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+    .preview-side img { max-width: 100%; max-height: 100%; object-fit: contain; }
+    
+    .controls-side { flex: 1; border-left: 1px solid #363636; padding: 20px; background: #262626; display: flex; flex-direction: column; overflow-y: auto; }
+    
+    /* Filters */
+    .filter-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
+    .filter-btn { background: #363636; color: white; border: none; padding: 10px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; transition: background 0.2s; }
+    .filter-btn:hover { background: #4a4a4a; }
+    
+    /* Caption Box */
+    .caption-header { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; }
+    .caption-header img { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; }
+    textarea#caption { 
+        width: 100%; height: 120px; background: #121212; border: 1px solid #363636; border-radius: 8px;
+        color: white; resize: none; outline: none; padding: 12px; font-size: 14px; box-sizing: border-box; transition: border 0.2s;
+    }
+    textarea#caption:focus { border-color: #555; }
+    
+    /* Close Button */
+    .close-modal-btn {
+        position: absolute; top: 15px; right: 25px; background: none; border: none; 
+        color: #e0e0e0; font-size: 35px; cursor: pointer; transition: transform 0.2s; z-index: 10000;
+    }
+    .close-modal-btn:hover { transform: scale(1.1); color: white; }
+
+    .loading-screen {
+        position: absolute; inset: 0; background: rgba(38, 38, 38, 0.95); z-index: 100;
+        display: none; flex-direction: column; align-items: center; justify-content: center;
+    }
+    .loading-icon { font-size: 45px; color: #0095f6; animation: spin 1s linear infinite; }
+    @keyframes spin { 100% { transform: rotate(360deg); } }
+
+    /* ✨ GLOBAL INCOMING CALL MODAL STYLES ✨ */
+    @keyframes slideInGlobal { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    @keyframes pulse-ring-global { 
+        0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(0, 149, 246, 0.7); } 
+        70% { transform: scale(1.1); box-shadow: 0 0 0 15px rgba(0, 149, 246, 0); } 
+        100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(0, 149, 246, 0); } 
+    }
+
+    /* Mobile Responsiveness */
+    @media (max-width: 768px) {
+        .edit-layout { flex-direction: column; }
+        .preview-side { flex: 1; min-height: 50%; }
+        .controls-side { flex: 1; border-left: none; border-top: 1px solid #363636; min-height: 50%; }
+        .post-modal { height: 90vh; max-height: none; width: 95%; }
+    }
+  </style>
+
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+<div class="app">
+  {% include "includes/sidebar.html" %}
+  
+  <div class="notification-side-panel" id="notificationPanel">
+      <div class="panel-header">
+          <h2>Notifications</h2>
+          <button onclick="toggleNotifications()" title="Close">&times;</button>
+      </div>
+      
+      <div class="notif-list">
+        {% for notif in notifications %}
+        <div class="notif-item {% if not notif.is_seen %}unread{% endif %}" id="notif-item-{{ notif.id }}">
+            <div class="notif-content">
+                <img src="{{ notif.sender.profile.profile_image.url }}" class="notif-avatar" alt="Avatar">
+                <div class="notif-text">
+                    <strong>{{ notif.sender.username }}</strong>
+                    {% if notif.notification_type == 'follow_request' %}
+                        wants to follow you.
+                    {% elif notif.notification_type == 'follow' %}
+                        started following you.
+                    {% elif notif.notification_type == 'accept' %}
+                        accepted your follow request.
+                    {% endif %}
+                    <span class="notif-time">{{ notif.created_at|timesince }} ago</span>
+                </div>
+            </div>
+
+            {% if notif.notification_type == 'follow_request' %}
+            <div class="notif-actions" id="notif-actions-{{ notif.id }}">
+                <button type="button" onclick="handleAccept({{ notif.sender.id }}, {{ notif.id }})" class="btn-confirm">Confirm</button>
+                <button type="button" onclick="handleDecline({{ notif.sender.id }}, {{ notif.id }})" class="btn-remove">Delete</button>
+            </div>
+            {% endif %}
+        </div>
+        {% empty %}
+        <p style="text-align: center; color: #8e8e8e; font-size: 15px; margin-top: 40px;">No new notifications</p>
+        {% endfor %}
+      </div>
+  </div>
+  
+  <main class="main">
+    {% block content %}{% endblock %}
+  </main>
+</div>
+
+{% csrf_token %}
+
+<div id="postOverlay">
+    <button class="close-modal-btn" onclick="closeCreateModal()" title="Close">&times;</button>
+    <div class="post-modal">
+        <div class="modal-header">
+            <button id="modalPrevBtn" onclick="prevStep()"><i class='bx bx-left-arrow-alt'></i> Back</button>
+            <h3 id="modalTitle">Create new post</h3>
+            <button id="modalNextBtn" onclick="nextStep()">Next</button>
+        </div>
+
+        <div class="modal-body">
+            <div class="step-content active" id="step-upload">
+                <div class="upload-container">
+                    <i class='bx bx-images'></i>
+                    <p>Select photos and videos here</p>
+                    <label for="imageInput" class="btn-confirm upload-label">
+                        Select from computer
+                    </label>
+                    <input type="file" id="imageInput" accept="image/*,video/mp4,video/webm,video/quicktime" style="display: none;">
+                </div>
+            </div>
+
+            <div class="step-content" id="step-crop">
+                <div style="width: 100%; height: 100%; overflow: hidden; display: flex; align-items: center; justify-content: center; background: #000;">
+                    <img id="cropImage" src="" style="display: block; max-width: 100%; max-height: 100%;">
+                </div>
+            </div>
+
+            <div class="step-content" id="step-filter">
+                <div class="edit-layout">
+                    <div class="preview-side">
+                        <img id="filterImage" src="">
+                    </div>
+                    <div class="controls-side">
+                        <p style="font-weight: 600; margin-top: 0;">Filters</p>
+                        <div class="filter-grid">
+                            <button class="filter-btn" onclick="applyFilter('none')">Original</button>
+                            <button class="filter-btn" onclick="applyFilter('grayscale(100%)')">Moon</button>
+                            <button class="filter-btn" onclick="applyFilter('sepia(60%)')">Cream</button>
+                            <button class="filter-btn" onclick="applyFilter('brightness(1.2)')">Bright</button>
+                            <button class="filter-btn" onclick="applyFilter('contrast(1.4)')">Contrast</button>
+                            <button class="filter-btn" onclick="applyFilter('saturate(2)')">Vivid</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="step-content" id="step-caption">
+                <div class="edit-layout">
+                    <div class="preview-side">
+                        <img id="finalImage" src="">
+                        <video id="finalVideoPreview" style="display:none; max-width: 100%; max-height: 100%;" controls loop></video>
+                    </div>
+                    <div class="controls-side">
+                        <div class="caption-header">
+                            <img src="{{ request.user.profile.profile_image.url }}" alt="Profile">
+                            <span style="font-weight: 600;">{{ request.user.username }}</span>
+                        </div>
+                        <textarea id="caption" placeholder="Write a caption..."></textarea>
+                        <button onclick="sharePost()" class="btn-confirm" style="width: 100%; margin-top: auto; padding: 12px;">Share</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="loading-screen" id="loadingScreen">
+                <div id="loadingState" style="text-align:center;">
+                    <i class='bx bx-loader-alt loading-icon'></i>
+                    <p style="margin-top: 10px;">Sharing...</p>
+                </div>
+                <div id="successState" style="text-align:center; display:none;">
+                    <i class='bx bx-check-circle' style="font-size:55px; color:#4bb543;"></i>
+                    <p style="margin-top: 10px;">Post shared!</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="global-incoming-call-popup" style="display: none; position: fixed; top: 20px; right: 20px; width: 300px; background: #262626; border: 1px solid #363636; border-radius: 12px; padding: 20px; z-index: 99999; box-shadow: 0 10px 40px rgba(0,0,0,0.8); text-align: center; animation: slideInGlobal 0.3s ease-out;">
+    <div style="width: 60px; height: 60px; background: #0095f6; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px auto; animation: pulse-ring-global 2s infinite;">
+        <i class='bx bx-video' style="font-size: 32px; color: white;"></i>
+    </div>
+    <h3 id="global-incoming-caller-name" style="margin: 0 0 5px 0; font-size: 18px;">Username</h3>
+    <p style="margin: 0 0 20px 0; color: #a8a8a8; font-size: 14px;">Incoming video call...</p>
+    <div style="display: flex; gap: 10px; justify-content: center;">
+        <button onclick="declineGlobalIncomingCall()" style="flex: 1; background: #363636; color: white; border: none; padding: 10px; border-radius: 8px; cursor: pointer; font-weight: 600; transition: 0.2s;">Decline</button>
+        <button id="global-accept-call-btn" style="flex: 1; background: #28a745; color: white; border: none; padding: 10px; border-radius: 8px; cursor: pointer; font-weight: 600; transition: 0.2s;">Accept</button>
+    </div>
+</div>
+
+<script src="https://unpkg.com/cropperjs@1.6.2/dist/cropper.min.js"></script>
+<script src="{% static 'js/script.js' %}"></script>
+
+<script>
+    // --- ✨ GLOBAL INCOMING CALL LISTENER ✨ ---
+    const currentUserIdGlobal = "{{ request.user.id }}";
+    let globalChatSockets = [];
+
+    function initGlobalCallListeners() {
+        if (!currentUserIdGlobal || currentUserIdGlobal === "None") return;
+
+        // Fetch all of the user's active threads
+        fetch('/api/chat/threads/')
+        .then(res => res.json())
+        .then(threads => {
+            const wsProtocol = window.location.protocol === "https:" ? "wss://" : "ws://";
+            
+            threads.forEach(thread => {
+                // Connect a background WebSocket for each active chat
+                const ws = new WebSocket(`${wsProtocol}${window.location.host}/ws/chat/${thread.id}/`);
+                
+                ws.onmessage = function(e) {
+                    const data = JSON.parse(e.data);
+                    
+                    // If someone sends the exact "started a call" string, trigger the popup!
+                    if (data.message === '📞 Started a video call' && parseInt(data.sender_id) !== parseInt(currentUserIdGlobal)) {
+                        showGlobalIncomingCall(data.sender_username, thread.id);
+                    }
+                };
+                
+                globalChatSockets.push(ws);
+            });
+        }).catch(err => console.error("Error fetching threads for global call listener:", err));
+    }
+
+    function showGlobalIncomingCall(callerName, threadId) {
+        // Prevent showing the popup if the user is already inside the active call room
+        if (window.location.pathname.includes(`/direct/call/${threadId}`)) return;
+
+        const popup = document.getElementById('global-incoming-call-popup');
+        document.getElementById('global-incoming-caller-name').innerText = callerName;
+        
+        const acceptBtn = document.getElementById('global-accept-call-btn');
+        acceptBtn.onclick = function() {
+            window.location.href = `/direct/call/${threadId}/`;
+        };
+
+        popup.style.display = 'block';
+
+        // Auto-hide the popup after 30 seconds if unanswered
+        setTimeout(() => { popup.style.display = 'none'; }, 30000);
+    }
+
+    function declineGlobalIncomingCall() {
+        document.getElementById('global-incoming-call-popup').style.display = 'none';
+    }
+
+    // Start listening as soon as any page loads
+    window.addEventListener('load', initGlobalCallListeners);
+
+
+    // --- NOTIFICATION PANEL JS TOGGLE & MARK AS READ ---
+    function toggleNotifications() {
+        const panel = document.getElementById('notificationPanel');
+        
+        if (panel) {
+            panel.classList.toggle('active');
+
+            if (panel.classList.contains('active')) {
+                const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+                
+                fetch("/notifications/read/", {
+                    method: "POST",
+                    headers: {
+                        "X-CSRFToken": csrfToken,
+                        "Content-Type": "application/json"
+                    }
+                })
+                .then(response => {
+                    if(response.ok) {
+                        document.querySelectorAll('.notif-item.unread').forEach(item => {
+                            setTimeout(() => item.classList.remove('unread'), 800);
+                        });
+                        
+                        const topBadge = document.getElementById('top-notif-badge');
+                        const sideBadge = document.getElementById('notif-badge');
+                        if (topBadge) topBadge.style.display = 'none';
+                        if (sideBadge) sideBadge.style.display = 'none';
+                    }
+                })
+                .catch(err => console.error("Error marking as read:", err));
+            }
+        }
+    }
+
+    // --- ACCEPT/DECLINE LOGIC ---
+    function handleAccept(userId, notifId) {
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        fetch(`/accept/${userId}/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/json' }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.status === 'success') {
+                const actionsDiv = document.getElementById(`notif-actions-${notifId}`);
+                if(data.is_following_back) {
+                    actionsDiv.innerHTML = `<span style="color: #a8a8a8; font-size: 14px; font-weight: 600; padding: 8px 0;">Following</span>`;
+                } else {
+                    actionsDiv.innerHTML = `<a href="/follow/${userId}/" class="btn-confirm" style="display: block; width: 100%;">Follow Back</a>`;
+                }
+            }
+        });
+    }
+
+    function handleDecline(userId, notifId) {
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        fetch(`/decline/${userId}/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/json' }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.status === 'success') {
+                const item = document.getElementById(`notif-item-${notifId}`);
+                if (item) {
+                    item.style.opacity = '0';
+                    setTimeout(() => item.remove(), 200); 
+                }
+            }
+        });
+    }
+
+    // --- MODAL, CROPPER & REELS UPLOAD LOGIC ---
+    let cropper;
+    let currentStep = 0;
+    const steps = ['step-upload', 'step-crop', 'step-filter', 'step-caption'];
+    
+    // NEW VARS FOR VIDEO
+    let isVideo = false;
+    let uploadedVideoFile = null;
+
+    function showStep(index) {
+        currentStep = index;
+        document.querySelectorAll('.step-content').forEach((s, i) => {
+            s.classList.toggle('active', i === index);
+        });
+
+        const prevBtn = document.getElementById('modalPrevBtn');
+        const nextBtn = document.getElementById('modalNextBtn');
+        const titles = ["Create new post", "Crop", "Edit", "Caption"];
+
+        prevBtn.style.visibility = (index === 0) ? 'hidden' : 'visible';
+        
+        if (index === 0 || index === 3) {
+            nextBtn.style.display = 'none';
+        } else {
+            nextBtn.style.display = 'block';
+        }
+        
+        // Update Title (Handles Reels title override)
+        if (isVideo && index === 3) {
+            document.getElementById('modalTitle').innerText = "New Reel";
+        } else {
+            document.getElementById('modalTitle').innerText = titles[index];
+        }
+    }
+
+    window.openCreateModal = function() {
+        document.getElementById('postOverlay').classList.add('show');
+        showStep(0);
+    };
+
+    window.closeCreateModal = function() {
+        document.getElementById('postOverlay').classList.remove('show');
+        if (cropper) {
+            cropper.destroy();
+            cropper = null;
+        }
+        // Reset Inputs & Variables
+        document.getElementById('imageInput').value = '';
+        isVideo = false;
+        uploadedVideoFile = null;
+        
+        // Reset previews
+        document.getElementById('finalVideoPreview').src = "";
+        document.getElementById('finalVideoPreview').style.display = 'none';
+        document.getElementById('finalImage').style.display = 'block';
+        
+        // Reset Loader UI
+        document.getElementById('loadingScreen').style.display = "none";
+        document.getElementById('loadingState').style.display = 'block';
+        document.getElementById('successState').style.display = 'none';
+    };
+
+    window.nextStep = function() {
+        if (currentStep === 1 && cropper) {
+            const canvas = cropper.getCroppedCanvas({ width: 1080, height: 1080 });
+            const croppedData = canvas.toDataURL("image/jpeg", 0.9);
+            
+            document.getElementById('filterImage').src = croppedData;
+            document.getElementById('finalImage').src = croppedData; 
+            showStep(2);
+        } else if (currentStep === 2) {
+            showStep(3);
+        }
+    };
+
+    window.prevStep = function() {
+        if (currentStep === 3 && isVideo) {
+            // If it's a video, hitting back from caption takes you back to upload screen
+            showStep(0);
+            isVideo = false;
+            uploadedVideoFile = null;
+        } else if (currentStep > 0) {
+            showStep(currentStep - 1);
+        }
+    };
+
+    window.applyFilter = function(filterValue) {
+        const filterImg = document.getElementById('filterImage');
+        const finalImg = document.getElementById('finalImage');
+        
+        filterImg.style.filter = filterValue;
+        
+        const canvas = document.createElement('canvas');
+        canvas.width = filterImg.naturalWidth;
+        canvas.height = filterImg.naturalHeight;
+        const ctx = canvas.getContext('2d');
+        
+        ctx.filter = filterValue;
+        ctx.drawImage(filterImg, 0, 0, canvas.width, canvas.height);
+        
+        finalImg.src = canvas.toDataURL("image/jpeg", 0.9);
+    };
+
+    // --- MAIN FILE INPUT LISTENER (Handles Images OR Videos) ---
+    document.getElementById('imageInput').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            
+            // CHECK IF IT IS A VIDEO (REEL)
+            if (file.type.startsWith('video/')) {
+                isVideo = true;
+                uploadedVideoFile = file;
+                
+                // Switch UI in Caption Step from Image to Video
+                document.getElementById('finalImage').style.display = 'none';
+                const videoPreview = document.getElementById('finalVideoPreview');
+                videoPreview.src = URL.createObjectURL(file);
+                videoPreview.style.display = 'block';
+                
+                // Skip Crop and Filter steps entirely
+                showStep(3);
+                
+            } else {
+                // IT IS AN IMAGE (POST)
+                isVideo = false;
+                uploadedVideoFile = null;
+                
+                // Ensure UI is set back to Image mode
+                document.getElementById('finalVideoPreview').style.display = 'none';
+                document.getElementById('finalImage').style.display = 'block';
+                
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const cropImg = document.getElementById('cropImage');
+                    cropImg.src = event.target.result;
+                    
+                    showStep(1); 
+                    
+                    if (cropper) cropper.destroy();
+                    
+                    setTimeout(() => {
+                        cropper = new Cropper(cropImg, {
+                            aspectRatio: 1,
+                            viewMode: 1,
+                            background: false,
+                            autoCropArea: 1
+                        });
+                    }, 100);
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+    });
+
+    // --- SHARE POST OR REEL LOGIC ---
+    window.sharePost = function() {
+        const caption = document.getElementById('caption').value;
+        const loader = document.getElementById('loadingScreen');
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+        loader.style.display = 'flex';
+
+        if (isVideo) {
+            // REEL UPLOAD (Needs FormData because video files are large)
+            const formData = new FormData();
+            formData.append('video', uploadedVideoFile);
+            formData.append('caption', caption);
+
+            fetch("/api/reels/create/", {
+                method: "POST",
+                headers: {
+                    "X-CSRFToken": csrfToken
+                },
+                body: formData
+            })
+            .then(res => {
+                if (res.ok) {
+                    document.getElementById('loadingState').style.display = 'none';
+                    document.getElementById('successState').style.display = 'block';
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    loader.style.display = 'none';
+                    alert("Error: Could not save Reel.");
+                }
+            })
+            .catch(err => {
+                loader.style.display = 'none';
+                console.error("Fetch Error:", err);
+            });
+            
+        } else {
+            // REGULAR IMAGE POST UPLOAD (Uses your existing Base64 JSON logic)
+            const imageData = document.getElementById('finalImage').src;
+
+            if (!imageData || imageData.startsWith('data:image/svg+xml')) {
+                loader.style.display = 'none';
+                alert("Please select and process an image first.");
+                return;
+            }
+
+            fetch("/create_post/", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": csrfToken
+                },
+                body: JSON.stringify({
+                    image: imageData,
+                    caption: caption
+                })
+            })
+            .then(res => {
+                if (res.ok) {
+                    document.getElementById('loadingState').style.display = 'none';
+                    document.getElementById('successState').style.display = 'block';
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    loader.style.display = 'none';
+                    alert("Error: Could not save post.");
+                }
+            })
+            .catch(err => {
+                loader.style.display = 'none';
+                console.error("Fetch Error:", err);
+            });
+        }
+    };
+
+    // --- START CHAT FROM PROFILE LOGIC ---
+    function startChatWithUser(userId) {
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        
+        fetch(`/api/chat/start/${userId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken,
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.thread_id) {
+                window.location.href = "{% url 'inbox' %}";
+            }
+        })
+        .catch(err => console.error("Error starting chat:", err));
+    }
+</script>
+
+{% block extra_js %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,399 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Vibe | Settings{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ===== SETTINGS LAYOUT ===== */
+.settings-wrapper {
+    display: flex;
+    justify-content: center;
+    padding: 40px 15px; /* Added side padding for mobile */
+}
+
+.settings-container {
+    display: flex;
+    width: 100%;
+    max-width: 950px; /* Changed from fixed width */
+    background: #000;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 12px;
+    min-height: 700px;
+    overflow: hidden;
+}
+
+/* LEFT SIDE: MENU */
+.settings-left {
+    width: 300px;
+    border-right: 1px solid rgba(255, 255, 255, 0.15);
+    padding: 24px;
+    flex-shrink: 0; /* Prevents sidebar from squishing on medium screens */
+}
+
+.settings-title {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 24px;
+}
+
+.settings-menu {
+    display: flex;
+    flex-direction: column;
+}
+
+.menu-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    color: #fff;
+    text-decoration: none;
+    margin-bottom: 6px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.menu-item:hover { background: #1a1a1a; }
+
+.menu-item.active {
+    background: #1a1a1a;
+    font-weight: 600;
+    border-left: 3px solid #fff;
+}
+
+/* RIGHT SIDE: CONTENT Area */
+.settings-right {
+    flex: 1;
+    padding: 36px 50px;
+    min-width: 0; /* Fixes flexbox text overflow issues */
+}
+
+.tab-content {
+    display: none;
+    animation: fadeIn 0.3s ease;
+}
+
+.tab-content.active { display: block; }
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* ===== COMPONENTS ===== */
+.section-header { font-size: 22px; margin-bottom: 24px; }
+
+.profile-card {
+    background: #1c1e21;
+    padding: 16px 20px;
+    border-radius: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 28px;
+    gap: 15px;
+}
+
+.profile-info { 
+    display: flex; 
+    align-items: center; 
+    gap: 14px; 
+    overflow: hidden; /* Helps truncate long text */
+}
+
+.profile-info img { 
+    width: 50px; 
+    height: 50px; 
+    border-radius: 50%; 
+    object-fit: cover; 
+    flex-shrink: 0;
+}
+
+.profile-info-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.profile-info-text strong {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.profile-info-text span {
+    color: #a8a8a8;
+    font-size: 13px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.btn-upload {
+    background: #0095f6;
+    color: #fff;
+    border: none;
+    padding: 8px 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.form-group { margin-bottom: 22px; }
+.form-group label { display: block; font-weight: 600; margin-bottom: 8px; color: #e0e0e0; font-size: 14px; }
+
+.form-group input,
+.form-group textarea,
+.form-group select {
+    width: 100%;
+    background: #000;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #fff;
+    padding: 12px;
+    border-radius: 12px;
+    font-size: 14px;
+    outline: none;
+    transition: border 0.2s;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+    border-color: #555;
+}
+
+.save-btn {
+    background: #0095f6;
+    padding: 12px 40px;
+    border-radius: 10px;
+    border: none;
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 10px;
+    transition: background 0.2s;
+}
+
+.save-btn:hover {
+    background: #1877f2;
+}
+
+.privacy-box {
+    background: #000;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 12px;
+    padding: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+}
+
+.privacy-text h4 { margin: 0 0 5px 0; font-size: 16px; }
+.privacy-text p { margin: 0; color: #888; font-size: 13px; max-width: 400px; line-height: 1.4; }
+
+/* Toggle Switch Styles */
+.switch { position: relative; display: inline-block; width: 50px; height: 26px; flex-shrink: 0; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider {
+    position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+    background-color: #363636; transition: .4s; border-radius: 34px;
+}
+.slider:before {
+    position: absolute; content: ""; height: 20px; width: 20px; left: 3px; bottom: 3px;
+    background-color: white; transition: .4s; border-radius: 50%;
+}
+input:checked + .slider { background-color: #0095f6; }
+input:checked + .slider:before { transform: translateX(24px); }
+
+/* ==============================================
+   📱 RESPONSIVE MEDIA QUERIES
+   ============================================== */
+
+/* Tablet & Smaller Laptops */
+@media (max-width: 900px) {
+    .settings-container {
+        flex-direction: column;
+        min-height: auto;
+    }
+
+    .settings-left {
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+        padding: 20px;
+    }
+
+    .settings-title {
+        margin-bottom: 15px;
+    }
+
+    .settings-menu {
+        flex-direction: row;
+        overflow-x: auto; /* Allow horizontal scrolling */
+        gap: 10px;
+        padding-bottom: 5px;
+        
+        /* Hide scrollbar for cleaner look */
+        -ms-overflow-style: none;  /* IE and Edge */
+        scrollbar-width: none;  /* Firefox */
+    }
+    
+    .settings-menu::-webkit-scrollbar {
+        display: none; /* Chrome, Safari and Opera */
+    }
+
+    .menu-item {
+        margin-bottom: 0;
+        white-space: nowrap; /* Keep text on one line */
+        border-radius: 8px;
+    }
+
+    /* Move active indicator from left to bottom on mobile */
+    .menu-item.active {
+        border-left: none;
+        background: rgba(255, 255, 255, 0.1);
+    }
+
+    .settings-right {
+        padding: 24px 20px;
+    }
+}
+
+/* Mobile Phones */
+@media (max-width: 500px) {
+    .settings-wrapper {
+        padding: 20px 10px;
+    }
+
+    .profile-card {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+    }
+
+    .btn-upload {
+        width: 100%;
+        text-align: center;
+    }
+
+    .privacy-box {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .save-btn {
+        width: 100%;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="settings-wrapper">
+    <form method="POST" enctype="multipart/form-data" style="display:contents;">
+        {% csrf_token %}
+        
+        <div class="settings-container">
+            <div class="settings-left">
+                <h2 class="settings-title">Settings</h2>
+                <div class="settings-menu">
+                    <div class="menu-item active" onclick="openTab(event, 'edit-profile')">
+                        <i class='bx bx-edit'></i> Edit profile
+                    </div>
+                    <div class="menu-item" onclick="openTab(event, 'privacy')">
+                        <i class='bx bx-lock-alt'></i> Privacy
+                    </div>
+                    <div class="menu-item">
+                        <i class='bx bx-bell'></i> Notifications
+                    </div>
+                    <div class="menu-item">
+                        <i class='bx bx-block'></i> Blocked accounts
+                    </div>
+                </div>
+            </div>
+
+            <div class="settings-right">
+                <input type="file" id="id_profile_image" name="profile_image" hidden onchange="this.form.submit()">
+
+                <div id="edit-profile" class="tab-content active">
+                    <h3 class="section-header">Edit profile</h3>
+                    <div class="profile-card">
+                        <div class="profile-info">
+                            <img src="{{ request.user.profile.profile_image.url }}">
+                            <div class="profile-info-text">
+                                <strong>{{ request.user.username }}</strong>
+                                <span>{{ request.user.profile.bio|truncatechars:30|default:"No bio yet" }}</span>
+                            </div>
+                        </div>
+                        <button type="button" class="btn-upload" onclick="document.getElementById('id_profile_image').click()">
+                            Change photo
+                        </button>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Website</label>
+                        {{ form.website }}
+                    </div>
+
+                    <div class="form-group">
+                        <label>Bio</label>
+                        {{ form.bio }}
+                    </div>
+
+                    <div class="form-group">
+                        <label>Location</label>
+                        {{ form.location }}
+                    </div>
+
+                    <button type="submit" class="save-btn">Save changes</button>
+                </div>
+
+                <div id="privacy" class="tab-content">
+                    <h3 class="section-header">Account Privacy</h3>
+                    <div class="privacy-box">
+                        <div class="privacy-text">
+                            <h4>Public Account</h4>
+                            <p>If checked, everyone can see your posts. Uncheck to make it private (only followers can see).</p>
+                        </div>
+                        <label class="switch">
+                            {{ form.is_public }}
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <br>
+                    <button type="submit" class="save-btn">Save Privacy Settings</button>
+                </div>
+            </div> 
+        </div>
+    </form>
+</div>
+
+<script>
+    function openTab(evt, tabName) {
+        var i, tabcontent, menuitems;
+        
+        // Hide all tab content
+        tabcontent = document.getElementsByClassName("tab-content");
+        for (i = 0; i < tabcontent.length; i++) {
+            tabcontent[i].style.display = "none";
+            tabcontent[i].classList.remove("active");
+        }
+        
+        // Remove active class from all menu items
+        menuitems = document.getElementsByClassName("menu-item");
+        for (i = 0; i < menuitems.length; i++) {
+            menuitems[i].classList.remove("active");
+        }
+        
+        // Show the current tab and add active class to button
+        document.getElementById(tabName).style.display = "block";
+        setTimeout(() => {
+            document.getElementById(tabName).classList.add("active");
+        }, 10);
+        evt.currentTarget.classList.add("active");
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,242 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Vibe | Set Up Profile</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+
+<style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #0a0a0a, #1a1a1a);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+}
+
+.setup-container {
+    width: 100%;
+    max-width: 420px;
+    background: #141414;
+    padding: 40px 30px;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.setup-container h2 {
+    text-align: center;
+    font-size: 24px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    letter-spacing: 0.5px;
+}
+
+.setup-container p {
+    text-align: center;
+    font-size: 14px;
+    color: #888;
+    margin-bottom: 30px;
+}
+
+/* Avatar Styling */
+.avatar-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 25px;
+}
+
+.avatar {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: #222;
+    border: 3px solid #2a2a2a;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    transition: border-color 0.3s ease;
+}
+
+.avatar:hover {
+    border-color: #4da3ff;
+}
+
+.avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    color: transparent; /* Hides broken alt text */
+}
+
+/* Hide default file input */
+input[type="file"] {
+    display: none;
+}
+
+.upload-btn {
+    margin-top: 15px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #4da3ff;
+    cursor: pointer;
+    transition: color 0.2s ease, background 0.2s ease;
+    padding: 6px 12px;
+    border-radius: 6px;
+}
+
+.upload-btn:hover {
+    color: #3b8ce0;
+    background: rgba(77, 163, 255, 0.1);
+}
+
+/* Form Inputs */
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    font-size: 13px;
+    font-weight: 500;
+    color: #aaa;
+    display: block;
+    margin-bottom: 8px;
+}
+
+.form-group input,
+.form-group textarea {
+    width: 100%;
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 10px;
+    padding: 12px 15px;
+    color: #fff;
+    font-size: 14px;
+    outline: none;
+    transition: all 0.3s ease;
+}
+
+.form-group textarea {
+    resize: none;
+    height: 100px;
+    line-height: 1.5;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+    border-color: #4da3ff;
+    background: #1e1e1e;
+    box-shadow: 0 0 0 3px rgba(77, 163, 255, 0.1);
+}
+
+/* Submit Button */
+.submit-btn {
+    width: 100%;
+    padding: 14px;
+    margin-top: 10px;
+    border: none;
+    border-radius: 10px;
+    background: #4da3ff;
+    color: #000;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.3s ease, transform 0.1s ease;
+}
+
+.submit-btn:hover {
+    background: #3b8ce0;
+}
+
+.submit-btn:active {
+    transform: scale(0.98);
+}
+</style>
+</head>
+
+<body>
+
+<div class="setup-container">
+    <h2>Set up your profile</h2>
+    <p>Complete your profile to continue</p>
+
+    <form method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <div class="avatar-wrapper">
+            <div class="avatar">
+                {% if request.user.profile.profile_image %}
+                    <img 
+                        src="{{ request.user.profile.profile_image.url }}" 
+                        id="preview" 
+                        alt="Profile Picture"
+                        onerror="this.onerror=null; this.src='https://ui-avatars.com/api/?name={{ request.user.username|default:'User' }}&background=222&color=4da3ff&size=120';"
+                    >
+                {% else %}
+                    <img 
+                        src="https://ui-avatars.com/api/?name={{ request.user.username|default:'User' }}&background=222&color=4da3ff&size=120" 
+                        id="preview" 
+                        alt="Default Avatar"
+                    >
+                {% endif %}
+            </div>
+
+            <label class="upload-btn" for="id_profile_image">
+                Change photo
+            </label>
+
+            <input 
+                type="file" 
+                name="profile_image" 
+                id="id_profile_image" 
+                accept="image/*"
+            >
+        </div>
+
+        <div class="form-group">
+            <label>Bio</label>
+            {{ form.bio }}
+        </div>
+
+        <div class="form-group">
+            <label>Website</label>
+            {{ form.website }}
+        </div>
+
+        <button type="submit" class="submit-btn">
+            Continue
+        </button>
+    </form>
+</div>
+
+<script>
+    // JavaScript to handle live image preview inside the circle
+    const input = document.getElementById("id_profile_image");
+    const preview = document.getElementById("preview");
+
+    if (input) {
+        input.addEventListener("change", function () {
+            if (this.files && this.files[0]) {
+                // Update the image source to the newly selected file
+                preview.src = URL.createObjectURL(this.files[0]);
+            }
+        });
+    }
+</script>
+
+</body>
+</html>

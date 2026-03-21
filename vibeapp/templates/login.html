@@ -1,0 +1,252 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Vibe • Login</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Boxicons -->
+  <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont;
+    }
+
+    body {
+      background: #0b0f14;
+      color: #fff;
+    }
+
+    .login-wrapper {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* LEFT SIDE */
+    .login-left {
+      flex: 1;
+      padding: 60px;
+      background: radial-gradient(circle at top, #111827, #020617);
+    }
+
+    .sidebar-logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 50px;
+    }
+
+    .sidebar-logo i {
+      font-size: 42px;
+      background:#ec4899;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .logo-text {
+      font-size: 28px;
+      font-weight: 700;
+    }
+
+    .login-left h1 {
+      font-size: 42px;
+      font-weight: 700;
+      max-width: 500px;
+      line-height: 1.2;
+    }
+
+    .login-left h1 span {
+      background: linear-gradient(45deg, #ff006a, #ff9900);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .preview-cards {
+      display: flex;
+      gap: 20px;
+      margin-top: 40px;
+    }
+
+    .preview-cards img {
+      width: 160px;
+      border-radius: 16px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+    }
+
+    /* RIGHT SIDE */
+    .login-right {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: #0b0f14;
+    }
+
+    .login-box {
+      width: 100%;
+      max-width: 380px;
+      padding: 30px;
+    }
+
+    .login-box h2 {
+      font-size: 24px;
+      margin-bottom: 16px;
+      text-align: center;
+    }
+
+    /* 🔴 MESSAGES */
+    .messages {
+      margin-bottom: 14px;
+    }
+
+    .alert {
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 14px;
+      text-align: center;
+      margin-bottom: 8px;
+    }
+
+    .alert.error {
+      background: rgba(239, 68, 68, 0.15);
+      color: #fecaca;
+      border: 1px solid rgba(239, 68, 68, 0.4);
+    }
+
+    .alert.success {
+      background: rgba(34, 197, 94, 0.15);
+      color: #bbf7d0;
+      border: 1px solid rgba(34, 197, 94, 0.4);
+    }
+
+    form input {
+      width: 100%;
+      padding: 14px;
+      margin-bottom: 12px;
+      background: #111827;
+      border: 1px solid #1f2933;
+      border-radius: 8px;
+      color: #fff;
+      outline: none;
+    }
+
+    form button {
+      width: 100%;
+      padding: 14px;
+      background: #1d4ed8;
+      border: none;
+      border-radius: 8px;
+      color: #fff;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+
+    form button:hover {
+      background: #2563eb;
+    }
+
+    .forgot {
+      display: block;
+      text-align: center;
+      margin-top: 15px;
+      font-size: 14px;
+      color: #93c5fd;
+      text-decoration: none;
+    }
+
+    .divider {
+      text-align: center;
+      margin: 20px 0;
+      color: #6b7280;
+      font-size: 14px;
+    }
+
+    .create {
+      display: block;
+      text-align: center;
+      margin-top: 20px;
+      color: #3b82f6;
+      text-decoration: none;
+    }
+
+    .meta {
+      margin-top: 40px;
+      text-align: center;
+      font-size: 13px;
+      color: #6b7280;
+    }
+
+    @media(max-width: 900px) {
+      .login-left {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="login-wrapper">
+
+  <!-- LEFT -->
+  <div class="login-left">
+    <div class="sidebar-logo">
+      <i class='bx bx-pulse'></i>
+      <span class="logo-text">Vibe</span>
+    </div>
+
+    <h1>
+      See everyday moments from your<br>
+      <span>close friends</span>.
+    </h1>
+
+    <div class="preview-cards">
+      <img src="https://picsum.photos/200/300?1">
+      <img src="https://picsum.photos/200/300?2">
+      <img src="https://picsum.photos/200/300?3">
+    </div>
+  </div>
+
+  <!-- RIGHT -->
+  <div class="login-right">
+    <div class="login-box">
+      <h2>Log in to Vibe</h2>
+
+      <!-- ✅ MESSAGE DISPLAY -->
+      {% if messages %}
+        <div class="messages">
+          {% for message in messages %}
+            <div class="alert {{ message.tags }}">
+              {{ message }}
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      <form method="POST">
+        {% csrf_token %}
+        <input type="text" name="username" placeholder="Username" required>
+        <input type="password" name="password" placeholder="Password" required>
+
+        <button type="submit">Log in</button>
+
+        <a href="#" class="forgot">Forgot password?</a>
+
+        <div class="divider">OR</div>
+
+        <a href="{% url 'signup' %}" class="create">Create new account</a>
+      </form>
+
+      <div class="meta">©vibe</div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

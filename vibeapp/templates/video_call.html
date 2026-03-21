@@ -1,0 +1,410 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vibe | Video Call</title>
+    <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+        }
+
+        body {
+            background-color: #111;
+            color: #fff;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        /* Remote Video (Full Screen Background) */
+        #remote-video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 1;
+            background-color: #222; 
+        }
+
+        /* Local Video (Floating Picture-in-Picture) */
+        #local-video {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 120px;
+            height: 180px;
+            object-fit: cover;
+            border-radius: 12px;
+            z-index: 10;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+            background-color: #000;
+            transform: scaleX(-1); 
+        }
+        
+        .no-cam-placeholder {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 120px;
+            height: 180px;
+            border-radius: 12px;
+            z-index: 9;
+            background-color: #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            display: none;
+        }
+
+        /* Top Overlay Info */
+        .call-header {
+            position: absolute;
+            top: 30px;
+            left: 20px;
+            z-index: 10;
+            text-shadow: 1px 1px 4px rgba(0,0,0,0.8);
+        }
+
+        .call-header h2 { font-size: 22px; font-weight: 600; }
+        .call-header p { font-size: 14px; color: #ddd; margin-top: 4px; }
+
+        /* Bottom Control Bar */
+        .controls {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            display: flex;
+            gap: 20px;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(10px);
+            padding: 15px 25px;
+            border-radius: 40px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .control-btn {
+            width: 50px; height: 50px; border-radius: 50%; border: none;
+            display: flex; justify-content: center; align-items: center;
+            font-size: 24px; cursor: pointer; transition: all 0.2s;
+            color: #fff; background: rgba(255, 255, 255, 0.2);
+        }
+
+        .control-btn:hover { background: rgba(255, 255, 255, 0.3); }
+        .control-btn.active-off { background: #fff; color: #000; }
+        .end-call-btn { background: #ff3b30; }
+        .end-call-btn:hover { background: #e6352b; }
+
+        /* Connection Status Spinner */
+        #status-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(17, 17, 17, 0.9); z-index: 5;
+            display: flex; flex-direction: column; justify-content: center;
+            align-items: center; transition: opacity 0.5s;
+        }
+
+        .spinner {
+            width: 50px; height: 50px; border: 4px solid rgba(255,255,255,0.3);
+            border-top: 4px solid #fff; border-radius: 50%;
+            animation: spin 1s linear infinite; margin-bottom: 20px;
+        }
+
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+    <video id="remote-video" autoplay playsinline></video>
+
+    <video id="local-video" autoplay playsinline muted></video>
+    <div id="no-cam-placeholder" class="no-cam-placeholder">
+        <i class='bx bx-video-off' style="font-size: 30px; color: #888;"></i>
+    </div>
+
+    <div id="status-overlay">
+        <div class="spinner"></div>
+        <p id="status-text">Waiting for others to join...</p>
+    </div>
+
+    <div class="call-header">
+        <h2>Secure Video Call</h2>
+        <p>End-to-end encrypted</p>
+    </div>
+
+    <div class="controls">
+        <button class="control-btn" id="toggle-audio" onclick="toggleAudio()" title="Mute/Unmute">
+            <i class='bx bx-microphone'></i>
+        </button>
+        <button class="control-btn" id="toggle-video" onclick="toggleVideo()" title="Camera On/Off">
+            <i class='bx bx-video'></i>
+        </button>
+        <button class="control-btn end-call-btn" onclick="endCall()" title="End Call">
+            <i class='bx bx-phone-off'></i>
+        </button>
+    </div>
+
+    {{ thread.id|json_script:"thread-id" }}
+    {{ request.user.username|json_script:"username" }}
+
+    <script>
+        const threadId = JSON.parse(document.getElementById('thread-id').textContent);
+        const username = JSON.parse(document.getElementById('username').textContent);
+
+        const localVideo = document.getElementById('local-video');
+        const remoteVideo = document.getElementById('remote-video');
+        const statusOverlay = document.getElementById('status-overlay');
+        const statusText = document.getElementById('status-text');
+
+        let localStream = new MediaStream(); // Initialize with empty stream just in case
+        let peerConnection;
+        let signalingSocket;
+
+        const iceConfiguration = {
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' }
+            ]
+        };
+
+        async function startCall() {
+            // 1. Try to get Camera and Mic. Handle specific errors gracefully.
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                // Add tracks individually so we maintain our localStream object reference
+                stream.getTracks().forEach(track => localStream.addTrack(track));
+                localVideo.srcObject = localStream;
+            } catch (err) {
+                console.warn("Media access failed:", err);
+                
+                let errorMsg = "Error accessing media devices.";
+                if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+                    errorMsg = "No camera/mic detected. Check physical connection.";
+                } else if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+                    errorMsg = "Permission denied. Allow camera access in browser settings.";
+                } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+                    errorMsg = "Camera is currently in use by another application.";
+                }
+
+                alert(errorMsg + "\n\nJoining call in view-only mode.");
+                
+                // Hide video and show placeholder
+                document.getElementById('local-video').style.display = 'none';
+                document.getElementById('no-cam-placeholder').style.display = 'flex';
+                
+                // Update UI buttons to reflect "off" state
+                const vidBtn = document.getElementById('toggle-video');
+                vidBtn.classList.add('active-off');
+                vidBtn.querySelector('i').classList.replace('bx-video', 'bx-video-off');
+                isVideoOff = true;
+                
+                const audBtn = document.getElementById('toggle-audio');
+                audBtn.classList.add('active-off');
+                audBtn.querySelector('i').classList.replace('bx-microphone', 'bx-microphone-off');
+                isAudioMuted = true;
+            }
+
+            // 2. Connect to Django Channels WebSocket for signaling
+            const wsProtocol = window.location.protocol === "https:" ? "wss://" : "ws://";
+            signalingSocket = new WebSocket(`${wsProtocol}${window.location.host}/ws/call/${threadId}/`);
+
+            signalingSocket.onopen = () => {
+                console.log("WebSocket connected.");
+                signalingSocket.send(JSON.stringify({
+                    'type': 'peer-joined',
+                    'username': username
+                }));
+            };
+
+            signalingSocket.onmessage = async (e) => {
+                const data = JSON.parse(e.data);
+
+                if (data.type === 'peer-joined' && data.username !== username) {
+                    statusText.innerText = "Connecting...";
+                    createPeerConnection();
+                    const offer = await peerConnection.createOffer();
+                    await peerConnection.setLocalDescription(offer);
+                    signalingSocket.send(JSON.stringify({ 'type': 'offer', 'offer': offer, 'username': username }));
+                }
+
+                if (data.type === 'offer' && data.username !== username) {
+                    statusText.innerText = "Connecting...";
+                    createPeerConnection();
+                    await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
+                    const answer = await peerConnection.createAnswer();
+                    await peerConnection.setLocalDescription(answer);
+                    signalingSocket.send(JSON.stringify({ 'type': 'answer', 'answer': answer, 'username': username }));
+                }
+
+                if (data.type === 'answer' && data.username !== username) {
+                    await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+                }
+
+                if (data.type === 'ice-candidate' && data.username !== username) {
+                    try {
+                        await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+                    } catch (e) {
+                        console.error('Error adding received ice candidate', e);
+                    }
+                }
+
+                if (data.type === 'peer-left' && data.username !== username) {
+                    statusText.innerText = "The other user left the call.";
+                    statusOverlay.style.opacity = '1';
+                    statusOverlay.style.display = 'flex';
+                    remoteVideo.srcObject = null;
+                    if(peerConnection) {
+                        peerConnection.close();
+                        peerConnection = null;
+                    }
+                }
+            };
+        }
+
+        function createPeerConnection() {
+            peerConnection = new RTCPeerConnection(iceConfiguration);
+
+            // Add our local stream tracks to the connection (if any exist)
+            localStream.getTracks().forEach(track => {
+                peerConnection.addTrack(track, localStream);
+            });
+
+            // Handle incoming remote stream
+            peerConnection.ontrack = (event) => {
+                remoteVideo.srcObject = event.streams[0];
+                statusOverlay.style.opacity = '0'; 
+                setTimeout(() => statusOverlay.style.display = 'none', 500);
+            };
+
+            // Send network candidates to the other peer via WebSocket
+            peerConnection.onicecandidate = (event) => {
+                if (event.candidate) {
+                    signalingSocket.send(JSON.stringify({
+                        'type': 'ice-candidate',
+                        'candidate': event.candidate,
+                        'username': username
+                    }));
+                }
+            };
+        }
+
+        // --- UI CONTROLS ---
+
+        let isAudioMuted = false;
+        async function toggleAudio() {
+            // If no audio track exists, try to get permission again
+            if(localStream.getAudioTracks().length === 0) {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    const audioTrack = stream.getAudioTracks()[0];
+                    localStream.addTrack(audioTrack);
+                    
+                    if(peerConnection) {
+                        peerConnection.addTrack(audioTrack, localStream);
+                        // Trigger renegotiation for the new track
+                        const offer = await peerConnection.createOffer();
+                        await peerConnection.setLocalDescription(offer);
+                        signalingSocket.send(JSON.stringify({ 'type': 'offer', 'offer': offer, 'username': username }));
+                    }
+                    isAudioMuted = false;
+                } catch (err) {
+                    return alert("Cannot access microphone: " + err.message);
+                }
+            } else {
+                // Normal toggle
+                isAudioMuted = !isAudioMuted;
+                localStream.getAudioTracks()[0].enabled = !isAudioMuted;
+            }
+
+            // Update UI
+            const btn = document.getElementById('toggle-audio');
+            const icon = btn.querySelector('i');
+            if(isAudioMuted) {
+                btn.classList.add('active-off');
+                icon.classList.replace('bx-microphone', 'bx-microphone-off');
+            } else {
+                btn.classList.remove('active-off');
+                icon.classList.replace('bx-microphone-off', 'bx-microphone');
+            }
+        }
+
+        let isVideoOff = false;
+        async function toggleVideo() {
+            // If no video track exists, try to get permission again
+            if(localStream.getVideoTracks().length === 0) {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                    const videoTrack = stream.getVideoTracks()[0];
+                    localStream.addTrack(videoTrack);
+                    localVideo.srcObject = localStream;
+                    
+                    if(peerConnection) {
+                        peerConnection.addTrack(videoTrack, localStream);
+                        // Trigger renegotiation for the new track
+                        const offer = await peerConnection.createOffer();
+                        await peerConnection.setLocalDescription(offer);
+                        signalingSocket.send(JSON.stringify({ 'type': 'offer', 'offer': offer, 'username': username }));
+                    }
+                    isVideoOff = false;
+                    
+                    // Show local video feed UI
+                    document.getElementById('local-video').style.display = 'block';
+                    document.getElementById('no-cam-placeholder').style.display = 'none';
+
+                } catch (err) {
+                    return alert("Cannot access camera: " + err.message);
+                }
+            } else {
+                // Normal toggle
+                isVideoOff = !isVideoOff;
+                localStream.getVideoTracks()[0].enabled = !isVideoOff;
+            }
+
+            // Update UI
+            const btn = document.getElementById('toggle-video');
+            const icon = btn.querySelector('i');
+            if(isVideoOff) {
+                btn.classList.add('active-off');
+                icon.classList.replace('bx-video', 'bx-video-off');
+            } else {
+                btn.classList.remove('active-off');
+                icon.classList.replace('bx-video-off', 'bx-video');
+            }
+        }
+
+        function endCall() {
+            if (peerConnection) peerConnection.close();
+            if (signalingSocket) {
+                signalingSocket.send(JSON.stringify({ 'type': 'peer-left', 'username': username }));
+                signalingSocket.close();
+            }
+            localStream.getTracks().forEach(track => track.stop());
+            window.location.href = '/direct/inbox/'; // Redirect back to inbox
+        }
+
+        // Start everything when page loads
+        window.addEventListener('load', startCall);
+        
+        // Clean up if user closes the tab
+        window.addEventListener('beforeunload', () => {
+            if (signalingSocket && signalingSocket.readyState === WebSocket.OPEN) {
+                signalingSocket.send(JSON.stringify({ 'type': 'peer-left', 'username': username }));
+            }
+        });
+    </script>
+</body>
+</html>

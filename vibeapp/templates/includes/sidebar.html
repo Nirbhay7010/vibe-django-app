@@ -1,0 +1,147 @@
+{% load static %}
+
+<aside class="menu-bar">
+  <div class="sidebar-logo">
+    <i class='bx bx-pulse logo-icon'></i>
+    <span class="logo-text">Vibe</span>
+  </div>
+
+  <ul class="menu-link">
+    <li>
+      <a href="{% url 'Vibe' %}" class="active"> <i class='bx bx-home-alt'></i>
+        <span>Home</span>
+      </a>
+    </li>
+
+    <li>
+      <a href="{% url 'reels_feed' %}">
+        <i class='bx bx-movie-play'></i>
+        <span>Reels</span>
+      </a>
+    </li>
+
+    <li>
+      <a href="{% url 'inbox' %}">
+        <i class='bx bx-message-rounded-dots'></i>
+        <span>Messages</span>
+      </a>
+    </li>
+
+   <li>
+     <a href="#" onclick="toggleNotifications(); return false;">
+        <i class='bx bx-heart'></i>
+        <span>Notifications</span>
+        {% if request.user.profile.unread_notifications_count > 0 %}
+          <span class="notification-badge" id="notif-badge">{{ request.user.profile.unread_notifications_count }}</span>
+        {% endif %}
+    </a>
+   </li>
+
+    <li>
+      <a href="javascript:void(0)" id="createBtn">
+        <i class='bx bx-plus-circle'></i>
+        <span>Create</span>
+      </a>
+    </li>
+  </ul>
+
+  <div class="sidebar-profile">
+    <a href="{% url 'profile' %}" class="profile-link">
+        {% if request.user.profile.profile_image %}
+            <img src="{{ request.user.profile.profile_image.url }}" alt="Profile" class="profile-pic-small">
+        {% else %}
+            <div class="profile-pic-small placeholder"></div>
+        {% endif %}
+
+        <div class="profile-text">
+            <span class="username">{{ request.user.username }}</span>
+            <span class="view-profile">View profile</span>
+        </div>
+    </a>
+  </div>
+</aside>
+
+<div class="create-dropdown" id="createDropdown">
+  <a href="javascript:void(0)" class="create-item" id="openPostModal">
+    <i class='bx bx-image'></i>
+    <div class="create-text">
+      <strong>Post</strong>
+      <p>Share photos</p>
+    </div>
+  </a>
+
+  <a href="javascript:void(0)" class="create-item" id="openReelModal">
+    <i class='bx bx-film'></i>
+    <div class="create-text">
+      <strong>Reel</strong>
+      <p>Short videos</p>
+    </div>
+  </a>
+
+  <a href="#" class="create-item">
+    <i class='bx bx-circle'></i>
+    <div class="create-text">
+      <strong>Story</strong>
+      <p>Share moment</p>
+    </div>
+  </a>
+</div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    // Create Elements
+    const createBtn = document.getElementById("createBtn");
+    const dropdown = document.getElementById("createDropdown");
+    const openPostModalBtn = document.getElementById("openPostModal");
+    const openReelModalBtn = document.getElementById("openReelModal"); // New target
+    
+    // 1. Toggle Create Dropdown
+    if (createBtn && dropdown) {
+        createBtn.addEventListener("click", (e) => {
+            e.stopPropagation(); 
+            
+            const rect = createBtn.getBoundingClientRect();
+            dropdown.style.top = (rect.top - 150) + "px"; 
+            dropdown.style.left = "80px"; 
+            dropdown.classList.toggle("show");
+        });
+    }
+
+    // 2. Close panels when clicking outside
+    document.addEventListener("click", (e) => {
+        // Handle Create Dropdown closing
+        if (dropdown && !dropdown.contains(e.target) && e.target !== createBtn) {
+            dropdown.classList.remove("show");
+        }
+    });
+
+    // 3. Open Post Modal Logic (Photos)
+    if (openPostModalBtn) {
+        openPostModalBtn.addEventListener("click", (e) => {
+            e.preventDefault();
+            if (dropdown) dropdown.classList.remove("show");
+            
+            if (typeof openCreateModal === "function") {
+                openCreateModal(); 
+            } else {
+                console.error("openCreateModal function missing!");
+            }
+        });
+    }
+
+    // 4. Open Reel Modal Logic (Videos)
+    // Because our base.html modal now handles both, we just trigger the same function!
+    if (openReelModalBtn) {
+        openReelModalBtn.addEventListener("click", (e) => {
+            e.preventDefault();
+            if (dropdown) dropdown.classList.remove("show");
+            
+            if (typeof openCreateModal === "function") {
+                openCreateModal(); 
+            } else {
+                console.error("openCreateModal function missing!");
+            }
+        });
+    }
+  });
+</script>

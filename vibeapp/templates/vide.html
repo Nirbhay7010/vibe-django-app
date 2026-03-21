@@ -1,0 +1,221 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Vibe | Home{% endblock %}
+
+{% block content %}
+<div class="main-container">
+
+    <div class="topbar">
+        <form action="{% url 'search_results' %}" method="GET" style="position: relative;">
+            <div class="search-box">
+                <i class='bx bx-search'></i>
+                <input type="text" name="q" id="topSearchInput" placeholder="Search" autocomplete="off">
+            </div>
+            <button type="submit" style="display: none;">Search</button>
+
+            <div class="search-dropdown" id="searchDropdown">
+                <div class="search-dropdown-header">
+                    <h4>Recent</h4>
+                    <a href="javascript:void(0)" class="clear-btn">Clear all</a>
+                </div>
+                <div class="search-dropdown-content">
+                    <p class="no-recent">No recent searches.</p>
+                </div>
+            </div>
+        </form>
+
+        <div class="top-icons">
+            <a href="#" onclick="toggleNotifications(); return false;" style="text-decoration:none; color:inherit; position: relative;">
+                <i class='bx bx-heart' style="font-size:24px; cursor:pointer;"></i>
+                
+                {% if request.user.profile.unread_notifications_count > 0 %}
+                    <span class="notification-badge" id="top-notif-badge" style="position: absolute; top: -5px; right: -5px;">
+                        {{ request.user.profile.unread_notifications_count }}
+                    </span>
+                {% endif %}
+            </a>
+        </div>
+    </div>
+
+    <div class="content">
+        <div class="feed">
+            <div class="stories">
+                <div class="story">
+                    <div class="story-ring">
+                        <img src="{{ request.user.profile.profile_image.url }}">
+                    </div>
+                    <span style="font-size:12px; display:block; text-align:center; margin-top:5px;">Your story</span>
+                </div>
+            </div>
+
+            {% for post in posts %}
+            <div class="post">
+                <div class="post-header">
+                    <a href="{% url 'user_profile' post.user.id %}" style="text-decoration:none; color:inherit; display:flex; align-items:center; gap:10px;">
+                        {% if post.user.profile.profile_image %}
+                            <img src="{{ post.user.profile.profile_image.url }}" class="post-avatar">
+                        {% endif %}
+                        <span style="font-weight:600; font-size:14px;">{{ post.user.username }}</span>
+                    </a>
+                    <i class='bx bx-dots-horizontal-rounded' style="margin-left:auto; cursor:pointer;"></i>
+                </div>
+
+                <div class="post-image">
+                    <img src="{{ post.image.url }}">
+                </div>
+
+                <div class="actions" style="padding: 10px; display:flex; gap:15px; font-size:26px;">
+                    <i class='bx bx-heart'></i>
+                    <i class='bx bx-message-rounded'></i>
+                    <i class='bx bx-paper-plane'></i>
+                    <i class='bx bx-bookmark' style="margin-left:auto;"></i>
+                </div>
+
+                {% if post.caption %}
+                <div style="padding: 0 10px 10px;">
+                    <strong>{{ post.user.username }}</strong> {{ post.caption }}
+                </div>
+                {% endif %}
+            </div>
+            {% empty %}
+            <div style="text-align:center; padding: 50px; color:gray;">
+                <i class='bx bx-camera' style="font-size:48px;"></i>
+                <p>Follow users to see their posts here.</p>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="right-panel">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                <span style="color:gray; font-weight:600;">Suggestions for you</span>
+            </div>
+
+            {% for suggest_user in users %}
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:15px;">
+                <a href="{% url 'user_profile' suggest_user.id %}" style="text-decoration:none; color:inherit; display:flex; align-items:center; gap:10px;">
+                    {% if suggest_user.profile.profile_image %}
+                        <img src="{{ suggest_user.profile.profile_image.url }}" style="width:40px; height:40px; border-radius:50%; object-fit:cover;">
+                    {% endif %}
+                    <div>
+                        <div style="font-weight:600; font-size:14px;">{{ suggest_user.username }}</div>
+                        <div style="color:gray; font-size:12px;">Suggested for you</div>
+                    </div>
+                </a>
+
+                <form action="{% url 'follow_user' suggest_user.id %}" method="POST" class="ajax-follow-form" style="margin: 0;">
+                    {% csrf_token %}
+                    {% if suggest_user.is_following_you %}
+                        <button type="submit" class="feed-follow-btn" style="background:none; border:none; color:#0095f6; font-weight:600; font-size:12px; cursor:pointer; padding:0;">Follow Back</button>
+                    {% else %}
+                        <button type="submit" class="feed-follow-btn" style="background:none; border:none; color:#0095f6; font-weight:600; font-size:12px; cursor:pointer; padding:0;">Follow</button>
+                    {% endif %}
+                </form>
+
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<style>
+  .search-dropdown {
+    position: absolute;
+    top: 50px; /* Adjust this slightly if it overlaps your search box */
+    left: 0;
+    width: 350px; /* Matches standard search box width */
+    min-height: 250px;
+    background-color: #000;
+    border: 1px solid #333;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.8);
+    padding: 15px;
+    display: none; /* Hidden by default */
+    z-index: 1000;
+  }
+
+  .search-dropdown.show {
+    display: block;
+  }
+
+  .search-dropdown-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #333;
+    padding-bottom: 10px;
+  }
+
+  .search-dropdown-header h4 {
+    color: #fff;
+    margin: 0;
+    font-size: 16px;
+  }
+
+  .search-dropdown-header .clear-btn {
+    color: #0095f6;
+    font-size: 14px;
+    text-decoration: none;
+  }
+
+  .search-dropdown-content .no-recent {
+    color: #888;
+    text-align: center;
+    margin-top: 30px;
+    font-size: 14px;
+  }
+</style>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    // --- DROPDOWN LOGIC ---
+    const searchInput = document.getElementById("topSearchInput");
+    const searchDropdown = document.getElementById("searchDropdown");
+
+    if (searchInput && searchDropdown) {
+        searchInput.addEventListener("focus", function() {
+            searchDropdown.classList.add("show");
+        });
+
+        document.addEventListener("click", function(e) {
+            const isClickInside = searchInput.contains(e.target) || searchDropdown.contains(e.target);
+            if (!isClickInside) {
+                searchDropdown.classList.remove("show");
+            }
+        });
+    }
+
+    // --- SILENT AJAX FOLLOW IN FEED ---
+    document.addEventListener('submit', (e) => {
+        if (e.target.classList.contains('ajax-follow-form')) {
+            e.preventDefault(); 
+            
+            const form = e.target;
+            const button = form.querySelector('button');
+
+            fetch(form.action, {
+                method: 'POST',
+                body: new FormData(form),
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'followed') {
+                    // Turn it gray and change to "Following"
+                    button.innerText = 'Following';
+                    button.style.color = '#f8fafc'; // White/Gray text
+                    form.action = form.action.replace('follow_user', 'unfollow_user');
+                    
+                } else if (data.status === 'unfollowed') {
+                    // Revert back to blue "Follow"
+                    button.innerText = 'Follow';
+                    button.style.color = '#0095f6'; // Blue text
+                    form.action = form.action.replace('unfollow_user', 'follow_user');
+                }
+            });
+        }
+    });
+  });
+</script>
+{% endblock %}
