@@ -4,6 +4,7 @@
   padding: 0;
   box-sizing: border-box;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  -webkit-tap-highlight-color: transparent; /* Removes blue tap highlight on mobile */
 }
 
 body {
@@ -27,9 +28,10 @@ img {
   flex: 1;
   display: flex;
   flex-direction: column;
+  width: 100%;
 }
 
-/* ========== SIDEBAR (Instagram Style) ========== */
+/* ========== SIDEBAR (Desktop Instagram Style) ========== */
 .menu-bar {
   width: 72px; /* Collapsed Width */
   height: 100vh;
@@ -82,7 +84,6 @@ img {
   transition: all 0.2s ease;
 }
 
-/* Show Text on Hover */
 .menu-bar:hover .logo-text {
   opacity: 1;
   transform: translateX(0);
@@ -132,7 +133,7 @@ img {
   transform: translateX(0);
 }
 
-/* --- PROFILE SECTION (CRITICAL FIX) --- */
+/* --- PROFILE SECTION --- */
 .sidebar-profile {
   margin-top: auto;
   border-top: 1px solid transparent;
@@ -161,11 +162,10 @@ img {
   background: rgba(255,255,255,0.1);
 }
 
-/* 🔥 THIS FIXES THE GIANT IMAGE 🔥 */
 .profile-pic-small {
-  width: 28px !important;  /* Force small width */
-  height: 28px !important; /* Force small height */
-  min-width: 28px; /* Prevent shrinking */
+  width: 28px !important;
+  height: 28px !important;
+  min-width: 28px;
   border-radius: 50%;
   object-fit: cover;
   background: #333;
@@ -193,7 +193,7 @@ img {
   border-radius: 12px;
   padding: 8px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-  display: none; /* Hidden by default */
+  display: none;
   flex-direction: column;
   gap: 4px;
   z-index: 2000;
@@ -227,52 +227,10 @@ img {
   to { opacity: 1; transform: scale(1); }
 }
 
-/* ========== MOBILE (UPDATED NAV BAR) ========== */
-@media (max-width: 768px) {
-  .menu-bar {
-    width: 100%; height: 55px;
-    position: fixed; bottom: 0; top: auto;
-    flex-direction: row; justify-content: space-around; align-items: center;
-    padding: 0; border-right: none; border-top: 1px solid #262626;
-  }
-  
-  .menu-bar:hover { width: 100%; padding: 0; }
-  
-  /* Magic Trick: This allows the menu links and profile picture to perfectly space themselves in one row */
-  .menu-link { display: contents; }
-  
-  /* Hid sidebar brand and text */
-  .logo-text, .sidebar-logo, .menu-link span, .profile-text {
-    display: none !important;
-  }
-
-  /* Formatting the profile picture to match the bottom bar icons */
-  .sidebar-profile {
-    display: flex !important;
-    margin-top: 0;
-    padding-top: 0;
-    border: none !important;
-  }
-  
-  /* Matches the clickable area padding of the other icons */
-  .profile-link {
-    padding: 12px;
-  }
-
-  /* Adjust dropdown for mobile */
-  .create-dropdown {
-    left: 50% !important;
-    transform: translateX(-50%);
-    bottom: 60px !important;
-    top: auto !important;
-  }
-}
-
 /* ========================================= */
-/* MAIN CONTENT & FEED FIXES            */
+/* MAIN CONTENT & FEED                       */
 /* ========================================= */
 
-/* 1. TOP BAR & SEARCH - Fixed Layout */
 .topbar {
   width: 100%;
   height: 70px;
@@ -284,7 +242,7 @@ img {
   border-bottom: 1px solid #262626;
   position: sticky;
   top: 0;
-  z-index: 900; /* Behind sidebar dropdown but above feed */
+  z-index: 900;
 }
 
 .search-box {
@@ -308,11 +266,10 @@ img {
   font-size: 16px;
 }
 
-/* 2. FEED LAYOUT - Center it properly */
 .content {
   display: flex;
   justify-content: center;
-  gap: 60px; /* Gap between feed and right panel */
+  gap: 60px;
   padding-top: 30px;
   max-width: 1200px;
   margin: 0 auto;
@@ -321,30 +278,30 @@ img {
 
 .feed {
   width: 100%;
-  max-width: 600px; /* Limits the width of posts */
+  max-width: 470px; /* Instagram feed width standard */
   display: flex;
   flex-direction: column;
   gap: 20px;
 }
 
-/* 3. STORIES - PREVENT GIANT IMAGES */
+/* 3. STORIES */
 .stories {
   display: flex;
   gap: 15px;
   overflow-x: auto;
   padding-bottom: 15px;
-  margin-bottom: 20px;
-  scrollbar-width: none; /* Hide scrollbar Firefox */
+  margin-bottom: 10px;
+  scrollbar-width: none;
 }
-.stories::-webkit-scrollbar { display: none; } /* Hide scrollbar Chrome */
+.stories::-webkit-scrollbar { display: none; }
 
 .story-ring {
-  width: 66px;   /* FORCE SIZE */
-  height: 66px;  /* FORCE SIZE */
+  width: 66px;
+  height: 66px;
   border-radius: 50%;
   padding: 3px;
   background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
-  flex-shrink: 0; /* Prevents squishing */
+  flex-shrink: 0;
 }
 
 .story-ring img {
@@ -352,27 +309,26 @@ img {
   height: 100%;
   object-fit: cover;
   border-radius: 50%;
-  border: 3px solid #000; /* Gap between ring and image */
+  border: 3px solid #000;
 }
 
-/* 4. POSTS - PREVENT GIANT HEADER ICONS */
+/* 4. POSTS */
 .post {
   background: #000;
-  border: 1px solid #262626;
-  border-radius: 8px;
-  margin-bottom: 15px;
+  border-bottom: 1px solid #262626; /* Changed to bottom only for feed style */
+  padding-bottom: 20px;
 }
 
 .post-header {
   display: flex;
   align-items: center;
-  padding: 10px;
+  padding: 10px 0;
   gap: 10px;
 }
 
 .post-avatar {
-  width: 35px;  /* FORCE SMALL SIZE */
-  height: 35px; /* FORCE SMALL SIZE */
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   object-fit: cover;
 }
@@ -380,51 +336,50 @@ img {
 .post-image img {
   width: 100%;
   height: auto;
-  max-height: 700px; /* Prevent extremely tall images */
+  max-height: 700px;
   object-fit: cover;
   display: block;
+  border-radius: 4px; /* Slight rounding on desktop */
 }
 
 /* 5. RIGHT PANEL (SUGGESTIONS) */
 .right-panel {
   width: 320px;
-  display: block; /* Visible on desktop */
+  display: block;
 }
 
 @media (max-width: 1100px) {
-  .right-panel { display: none; } /* Hide on smaller screens */
-  .content { justify-content: center; }
+  .right-panel { display: none; }
+  .content { justify-content: center; gap: 0; }
 }
+
 /* ========================================= */
-/* 🔥 CREATE POST MODAL (OVERLAY) FIX 🔥 */
+/* CREATE POST MODAL (OVERLAY)               */
 /* ========================================= */
 
-/* The dark background behind the popup */
 #postOverlay {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.85); /* Dimmed background */
-  z-index: 3000; /* Higher than sidebar (1000) */
-  display: none; /* Hidden by default */
+  background: rgba(0, 0, 0, 0.85);
+  z-index: 3000;
+  display: none;
   align-items: center;
   justify-content: center;
 }
 
-/* The actual class added by JS to show it */
 #postOverlay.show {
   display: flex;
   animation: fadeIn 0.2s ease-out;
 }
 
-/* The Box containing the upload/crop/filter */
 .post-modal {
   background: #262626;
   width: 100%;
-  max-width: 750px; /* Max width of the popup */
-  height: 80vh;     /* Fixed height */
+  max-width: 750px;
+  height: 80vh;
   max-height: 800px;
   border-radius: 12px;
   display: flex;
@@ -433,7 +388,6 @@ img {
   box-shadow: 0 0 20px rgba(0,0,0,0.5);
 }
 
-/* Header of the popup (Next/Back buttons) */
 .modal-header {
   height: 50px;
   border-bottom: 1px solid #363636;
@@ -447,18 +401,14 @@ img {
 .modal-header button {
   background: transparent;
   border: none;
-  color: #0095f6; /* Insta Blue */
+  color: #0095f6;
   font-weight: 600;
   cursor: pointer;
   font-size: 14px;
 }
 
-.modal-header h3 {
-  font-size: 16px;
-  color: #fff;
-}
+.modal-header h3 { font-size: 16px; color: #fff; }
 
-/* The Body area where images show */
 .modal-body {
   flex: 1;
   display: flex;
@@ -469,9 +419,8 @@ img {
   overflow: hidden;
 }
 
-/* Logic to hide/show steps */
 .step-content {
-  display: none; /* Hide all steps */
+  display: none;
   width: 100%;
   height: 100%;
   flex-direction: column;
@@ -479,18 +428,14 @@ img {
   justify-content: center;
 }
 
-.step-content.active {
-  display: flex; /* Show only active step */
-}
+.step-content.active { display: flex; }
 
-/* Image Previews in Modal */
 #cropImage, #filterImage, #finalImage {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
 }
 
-/* Filter Buttons Styling */
 .filter-options {
   display: flex;
   gap: 10px;
@@ -509,7 +454,6 @@ img {
   cursor: pointer;
 }
 
-/* Caption Text Area */
 .caption-area textarea {
   width: 100%;
   height: 100px;
@@ -522,26 +466,21 @@ img {
   outline: none;
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-/* ================= LOADER ANIMATION ================= */
+/* ================= LOADER & BADGE ================= */
 .loading-overlay {
   position: absolute;
   top: 0; left: 0; right: 0; bottom: 0;
   background: rgba(0,0,0,0.7);
-  display: none; /* Hidden by default */
+  display: none;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   z-index: 10;
-  border-radius: 12px;
 }
 
 .spinner {
   border: 4px solid rgba(255, 255, 255, 0.3);
-  border-top: 4px solid #0095f6; /* Insta Blue */
+  border-top: 4px solid #0095f6;
   border-radius: 50%;
   width: 40px;
   height: 40px;
@@ -549,11 +488,7 @@ img {
   margin-bottom: 10px;
 }
 
-.loading-text {
-  color: #fff;
-  font-weight: 600;
-  font-size: 14px;
-}
+.loading-text { color: #fff; font-weight: 600; font-size: 14px; }
 
 @keyframes spin {
   0% { transform: rotate(0deg); }
@@ -561,13 +496,135 @@ img {
 }
 
 .notification-badge {
-    background: #ed4956;
-    color: white;
-    font-size: 10px;
-    padding: 2px 6px;
-    border-radius: 10px;
-    position: absolute;
-    margin-left: -10px;
-    margin-top: -5px;
-    font-weight: bold;
+  background: #ed4956;
+  color: white;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 10px;
+  position: absolute;
+  margin-left: -10px;
+  margin-top: -5px;
+  font-weight: bold;
+}
+
+/* ========================================= */
+/* 🔥 MOBILE RESPONSIVE OVERHAUL 🔥        */
+/* ========================================= */
+@media (max-width: 768px) {
+  
+  /* Topbar Adjustments */
+  .topbar {
+    padding: 0 15px;
+    height: 60px;
+  }
+  
+  .search-box {
+    width: auto;
+    flex: 1; /* Allows search bar to fit available space cleanly */
+    margin-right: 10px;
+  }
+
+  /* Safe space at bottom for nav bar */
+  .main {
+    padding-bottom: 50px; 
+  }
+
+  .content {
+    padding-top: 10px;
+  }
+
+  .feed {
+    width: 100%;
+    max-width: 100%; /* Stretch to edges on mobile */
+    gap: 0; /* Remove gap between posts on mobile */
+  }
+
+  /* Bottom Navigation Bar */
+  .menu-bar {
+    width: 100%; 
+    height: 50px;
+    position: fixed; 
+    bottom: 0; 
+    top: auto;
+    flex-direction: row; 
+    justify-content: space-evenly; /* Perfect spacing */
+    align-items: center;
+    padding: 0; 
+    border-right: none; 
+    border-top: 1px solid #262626;
+    background: #000;
+  }
+  
+  .menu-bar:hover { 
+    width: 100%; 
+    padding: 0; 
+  }
+  
+  /* Reset link layout to display as flex horizontally */
+  .menu-link { 
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    justify-content: space-evenly;
+  }
+  
+  /* Remove hover backgrounds and format links for mobile touch targets */
+  .menu-link a, .profile-link {
+    padding: 10px;
+    border-radius: 0;
+    flex: 1;
+    justify-content: center;
+  }
+  
+  .menu-link a:hover, .profile-link:hover, .menu-link a.active {
+    background: transparent;
+  }
+
+  /* Hide textual elements from sidebar */
+  .logo-text, .sidebar-logo, .menu-link span, .profile-text {
+    display: none !important;
+  }
+
+  /* Profile pic integration into bottom bar */
+  .sidebar-profile {
+    display: flex !important;
+    margin-top: 0;
+    padding-top: 0;
+    border: none !important;
+  }
+
+  /* Mobile Dropdown Fix */
+  .create-dropdown {
+    left: 50% !important;
+    transform: translateX(-50%);
+    bottom: 60px !important;
+    top: auto !important;
+  }
+
+  /* Feed & Story adjustments */
+  .stories {
+    padding-left: 15px; /* Offset first story */
+  }
+
+  .post {
+    border: none; /* Posts touch edge to edge */
+    border-radius: 0;
+    margin-bottom: 0;
+  }
+
+  .post-header {
+    padding: 10px 15px; /* Re-add padding since border is gone */
+  }
+
+  .post-image img {
+    border-radius: 0; /* Remove rounding */
+  }
+
+  /* Native App Feel for the Modal */
+  .post-modal {
+    max-width: 100vw;
+    height: 100dvh; /* Uses Dynamic Viewport Height for mobile browsers */
+    max-height: 100dvh;
+    border-radius: 0; /* Native full screen look */
+  }
 }

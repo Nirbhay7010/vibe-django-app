@@ -4,7 +4,7 @@
 <head>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>{% block title %}Vibe – Social Dashboard{% endblock %}</title>
 
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2280%22 fill=%22%230095f6%22>V</text></svg>">
@@ -19,19 +19,22 @@
     .notification-side-panel {
         position: fixed; 
         top: 0; 
-        left: -380px; 
+        /* Start hidden to the left on Desktop */
+        left: -400px; 
         width: 380px; 
         height: 100vh;
         background: #000; 
         color: #fff; 
         z-index: 9999;
-        transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+        /* Ultra-smooth native app easing curve */
+        transition: transform 0.35s cubic-bezier(0.2, 0.9, 0.3, 1);
         border-right: 1px solid #262626;
         display: flex;
         flex-direction: column;
         box-shadow: 4px 0 24px rgba(0,0,0,0.6);
     }
     
+    /* Slides out 455px (past the 72px sidebar) on Desktop */
     .notification-side-panel.active { transform: translateX(455px); }
     
     .panel-header { 
@@ -178,12 +181,63 @@
         100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(0, 149, 246, 0); } 
     }
 
-    /* Mobile Responsiveness */
+    /* =========================================================
+       🔥 MOBILE RESPONSIVENESS (THE FIXES) 🔥
+       ========================================================= */
     @media (max-width: 768px) {
+        /* 1. NATIVE MOBILE NOTIFICATIONS PANEL */
+        .notification-side-panel {
+            left: 0;
+            width: 100%;
+            height: 100dvh; /* Uses device specific screen height */
+            /* Start completely hidden to the RIGHT edge */
+            transform: translateX(100%); 
+            border-right: none;
+            z-index: 20000; /* Ensure it covers bottom nav */
+        }
+        
+        .notification-side-panel.active { 
+            /* Slide in to perfectly cover the screen */
+            transform: translateX(0); 
+        }
+
+        .panel-header {
+            padding: 15px 20px;
+        }
+
+        /* 2. NATIVE FULL-SCREEN POST MODAL */
+        #postOverlay {
+            align-items: flex-end; /* Snap to bottom */
+            background: #000; /* Solid background on mobile */
+        }
+
+        .post-modal { 
+            height: 100dvh; 
+            max-height: 100dvh; 
+            width: 100%; 
+            border-radius: 0; /* Remove rounded corners */
+            box-shadow: none;
+        }
+
+        /* Fix modal close button positioning on mobile */
+        .close-modal-btn {
+            top: 5px;
+            right: 15px;
+            z-index: 10001;
+        }
+
+        /* Restructure edit layout for portrait phones */
         .edit-layout { flex-direction: column; }
-        .preview-side { flex: 1; min-height: 50%; }
-        .controls-side { flex: 1; border-left: none; border-top: 1px solid #363636; min-height: 50%; }
-        .post-modal { height: 90vh; max-height: none; width: 95%; }
+        .preview-side { flex: 1; min-height: 40%; }
+        .controls-side { flex: 1; border-left: none; border-top: 1px solid #363636; min-height: 60%; }
+        
+        /* Adjust Global Call popup to not break screen edge */
+        #global-incoming-call-popup {
+            width: 90%;
+            left: 5%;
+            right: 5%;
+            top: 10px;
+        }
     }
   </style>
 
