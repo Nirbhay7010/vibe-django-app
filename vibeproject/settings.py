@@ -130,17 +130,25 @@ LOGIN_REDIRECT_URL = 'post_login_redirect'
 
 
 # -------------------------------------------------------------------
-# CHANNELS & REDIS CONFIGURATION
+# CHANNELS & REDIS CONFIGURATION (FIXED)
 # -------------------------------------------------------------------
-CHANNEL_LAYERS = {
-    "default": {
-        "BACKEND": "channels_redis.core.RedisChannelLayer",
-        "CONFIG": {
-            # Uses Railway's REDIS_URL, falls back to local Redis for testing
-            "hosts": [os.environ.get('REDIS_URL', 'redis://127.0.0.1:6379')],
+if os.environ.get('REDIS_URL'):
+    # Production (Railway): Use Redis for handling connections across the server
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels_redis.core.RedisChannelLayer",
+            "CONFIG": {
+                "hosts": [os.environ.get('REDIS_URL')],
+            },
         },
-    },
-}
+    }
+else:
+    # Local Development: Use In-Memory Layer (No local Redis installation required)
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels.layers.InMemoryChannelLayer"
+        }
+    }
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

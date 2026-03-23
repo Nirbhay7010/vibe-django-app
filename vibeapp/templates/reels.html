@@ -3,7 +3,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Vibe | Reels</title>
     <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
 
@@ -13,16 +13,18 @@
             padding: 0;
             box-sizing: border-box;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent; /* Removes blue tap highlight on mobile */
         }
 
         body {
             background-color: #000;
             color: #fff;
             overflow: hidden;
+            height: 100dvh; /* Uses actual mobile screen height */
         }
 
         .reels-container {
-            height: 100vh;
+            height: 100dvh; /* Dynamic viewport height fixes the bottom cutoff */
             width: 100%;
             max-width: 450px;
             margin: 0 auto;
@@ -42,7 +44,7 @@
         }
 
         .reel-item {
-            height: 100vh;
+            height: 100dvh; /* Dynamic viewport height */
             width: 100%;
             scroll-snap-align: start;
             position: relative;
@@ -72,13 +74,14 @@
 
         .reel-info {
             position: absolute;
-            bottom: 20px;
+            /* Added env() to respect iPhone home indicator area safely */
+            bottom: max(25px, env(safe-area-inset-bottom)); 
             left: 15px;
             z-index: 10;
             max-width: 75%;
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 12px;
         }
 
         .user-header {
@@ -87,9 +90,18 @@
             gap: 10px;
         }
 
+        /* Styling for the clickable profile link */
+        .profile-link {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: #fff;
+        }
+
         .reel-avatar {
-            width: 35px;
-            height: 35px;
+            width: 38px;
+            height: 38px;
             border-radius: 50%;
             object-fit: cover;
             border: 1px solid rgba(255,255,255,0.2);
@@ -105,9 +117,9 @@
             background: transparent;
             border: 1px solid #fff;
             color: #fff;
-            padding: 4px 10px;
+            padding: 4px 12px;
             border-radius: 6px;
-            font-size: 12px;
+            font-size: 13px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.2s;
@@ -118,13 +130,12 @@
             background: rgba(255, 255, 255, 0.15);
             border: 1px solid rgba(255, 255, 255, 0.3);
             color: #fff;
-            width: 26px;
-            height: 26px;
+            width: 28px;
+            height: 28px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-left: 5px;
             cursor: pointer;
             transition: all 0.2s;
             backdrop-filter: blur(4px);
@@ -135,12 +146,12 @@
         }
 
         .call-btn i {
-            font-size: 14px;
+            font-size: 16px;
         }
 
         .caption {
             font-size: 14px;
-            line-height: 1.3;
+            line-height: 1.4;
             text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
             display: -webkit-box;
             -webkit-line-clamp: 2;
@@ -162,7 +173,7 @@
 
         .reel-actions {
             position: absolute;
-            bottom: 20px;
+            bottom: max(25px, env(safe-area-inset-bottom));
             right: 15px;
             display: flex;
             flex-direction: column;
@@ -192,12 +203,12 @@
 
         .bx-heart { color: white; }
         .bxs-heart { color: #ff3040; } 
-        .bxs-bookmark { color: white; } /* Highlight color for saved */
+        .bxs-bookmark { color: white; } 
 
         .audio-disc {
-            width: 30px;
-            height: 30px;
-            border-radius: 6px;
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
             object-fit: cover;
             border: 2px solid #fff;
             animation: spin 4s linear infinite;
@@ -213,12 +224,12 @@
             transform: translateX(-50%); 
             width: 100%;
             max-width: 450px; 
-            height: 65vh;
+            height: 65dvh;
             background: #262626;
-            border-top-left-radius: 16px;
-            border-top-right-radius: 16px;
+            border-top-left-radius: 20px;
+            border-top-right-radius: 20px;
             z-index: 9999; 
-            transition: bottom 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            transition: bottom 0.35s cubic-bezier(0.25, 0.8, 0.25, 1);
             display: flex;
             flex-direction: column;
             box-shadow: 0 -10px 40px rgba(0,0,0,0.5);
@@ -227,19 +238,19 @@
         .bottom-sheet.active { bottom: 0; }
 
         .drag-pill {
-            width: 40px; height: 4px; background: #555;
-            border-radius: 4px; margin: 12px auto 5px auto;
+            width: 40px; height: 5px; background: rgba(255,255,255,0.2);
+            border-radius: 5px; margin: 12px auto 5px auto;
         }
 
         .sheet-header {
             padding: 10px 15px 15px 15px; text-align: center;
             border-bottom: 1px solid #363636; font-weight: 600;
-            font-size: 15px; position: relative;
+            font-size: 16px; position: relative;
         }
 
         .close-btn {
             position: absolute; right: 15px; top: 10px;
-            cursor: pointer; font-size: 24px; color: #aaa;
+            cursor: pointer; font-size: 26px; color: #aaa;
         }
 
         .comments-list, .share-list {
@@ -253,6 +264,7 @@
 
         .comment-input-area {
             display: flex; align-items: center; padding: 15px;
+            padding-bottom: max(15px, env(safe-area-inset-bottom));
             border-top: 1px solid #363636; background: #262626; gap: 10px;
         }
         .comment-input-area img { width: 35px; height: 35px; border-radius: 50%; object-fit: cover; }
@@ -261,13 +273,13 @@
 
         .top-nav {
             position: absolute; top: 0; left: 0; width: 100%;
-            padding: 20px; z-index: 50; display: flex;
+            padding: max(20px, env(safe-area-inset-top)) 20px 20px 20px; 
+            z-index: 50; display: flex;
             justify-content: space-between; align-items: center; pointer-events: none;
         }
         .top-nav h2 { font-size: 20px; text-shadow: 1px 1px 4px rgba(0,0,0,0.8); }
         .back-nav { color: white; font-size: 28px; text-decoration: none; pointer-events: auto; text-shadow: 1px 1px 4px rgba(0,0,0,0.8); }
         
-        /* Options Menu Button Hover */
         .option-item:hover { background: #333; }
     </style>
 </head>
@@ -293,12 +305,14 @@
 
         <div class="reel-info">
             <div class="user-header">
-                {% if reel.user.profile.profile_image %}
-                    <img src="{{ reel.user.profile.profile_image.url }}" class="reel-avatar">
-                {% else %}
-                    <div class="reel-avatar" style="background:#444;"></div>
-                {% endif %}
-                <span class="username">{{ reel.user.username }}</span>
+                <a href="{% url 'user_profile' reel.user.id %}" class="profile-link">
+                    {% if reel.user.profile.profile_image %}
+                        <img src="{{ reel.user.profile.profile_image.url }}" class="reel-avatar">
+                    {% else %}
+                        <div class="reel-avatar" style="background:#444;"></div>
+                    {% endif %}
+                    <span class="username">{{ reel.user.username }}</span>
+                </a>
                 
                 {% if request.user != reel.user %}
                     <button class="follow-btn" onclick="toggleFollow({{ reel.user.id }}, this)">Follow</button>
@@ -392,7 +406,7 @@
             </div>
         </div>
 
-        <div class="bottom-sheet" id="options-sheet-{{ reel.id }}" style="height: auto; padding-bottom: 20px;">
+        <div class="bottom-sheet" id="options-sheet-{{ reel.id }}" style="height: auto; padding-bottom: max(20px, env(safe-area-inset-bottom));">
             <div class="drag-pill"></div>
             <div class="sheet-header">
                 Options
@@ -413,7 +427,7 @@
 
     </div>
     {% empty %}
-    <div style="height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #888; text-align: center;">
+    <div style="height: 100dvh; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #888; text-align: center;">
         <i class='bx bx-movie-play' style="font-size: 80px; margin-bottom: 15px; color: #333;"></i>
         <h2 style="color: #fff; margin-bottom: 10px;">No Reels Yet</h2>
         <p>Go to the Home feed and click Create -> Reel to share the first video!</p>
@@ -565,7 +579,6 @@
         });
     }
 
-    // --- NEW OPTIONS MENU FUNCTIONS ---
     function toggleOptions(reelId) {
         const sheet = document.getElementById(`options-sheet-${reelId}`);
         const isActive = sheet.classList.contains('active');
@@ -613,23 +626,19 @@
                     video.muted = true;
                 }
                 
-                // Smooth collapse animation
                 reelElement.style.transition = "height 0.4s ease, opacity 0.4s ease";
                 reelElement.style.height = "0";
                 reelElement.style.opacity = "0";
                 
                 setTimeout(() => {
                     reelElement.remove();
-                    // Scroll down automatically so the user isn't looking at empty space
                     window.scrollBy({ top: 10, behavior: 'smooth' }); 
                 }, 400);
             }
         });
     }
 
-    // --- NEW VIDEO CALL FUNCTION ---
     function startVideoCall(userId) {
-        // Hit the backend to get or create a DM thread with this user
         fetch(`/api/chat/start/${userId}/`, {
             method: 'POST',
             headers: { 
@@ -644,7 +653,6 @@
         })
         .then(data => {
             if(data.thread_id) {
-                // Redirect the user to the secure video call room
                 window.location.href = `/direct/call/${data.thread_id}/`;
             } else {
                 alert("Could not start call. Please try again.");

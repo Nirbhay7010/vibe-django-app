@@ -19,14 +19,12 @@
     .notification-side-panel {
         position: fixed; 
         top: 0; 
-        /* Start hidden to the left on Desktop */
         left: -400px; 
         width: 380px; 
         height: 100vh;
         background: #000; 
         color: #fff; 
         z-index: 9999;
-        /* Ultra-smooth native app easing curve */
         transition: transform 0.35s cubic-bezier(0.2, 0.9, 0.3, 1);
         border-right: 1px solid #262626;
         display: flex;
@@ -34,7 +32,6 @@
         box-shadow: 4px 0 24px rgba(0,0,0,0.6);
     }
     
-    /* Slides out 455px (past the 72px sidebar) on Desktop */
     .notification-side-panel.active { transform: translateX(455px); }
     
     .panel-header { 
@@ -100,24 +97,40 @@
     .btn-remove:active { transform: translateY(0); }
 
     /* =========================================================
-       ✨ OPTIMIZED POST OVERLAY (MODAL) STYLES ✨
+       ✨ ULTRA-COOL 3D POST OVERLAY (MODAL) STYLES ✨
        ========================================================= */
     #postOverlay {
         position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        background: rgba(0, 0, 0, 0.85); z-index: 9999;
-        display: none; justify-content: center; align-items: center; backdrop-filter: blur(8px);
+        background: rgba(0, 0, 0, 0.65); z-index: 9999;
+        display: flex; justify-content: center; align-items: center; 
+        backdrop-filter: blur(12px); 
+        opacity: 0; visibility: hidden; pointer-events: none;
+        perspective: 1000px; 
+        transition: opacity 0.4s ease, visibility 0.4s ease, backdrop-filter 0.4s ease;
     }
-    #postOverlay.show { display: flex !important; }
+    #postOverlay.show { 
+        opacity: 1; visibility: visible; pointer-events: all;
+    }
 
     .post-modal {
         background: #262626; width: 90%; max-width: 850px; height: 80vh; max-height: 650px;
-        border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; position: relative; color: white;
-        box-shadow: 0 15px 40px rgba(0,0,0,0.6);
+        border-radius: 20px; display: flex; flex-direction: column; overflow: hidden; position: relative; color: white;
+        box-shadow: 0 40px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.05);
+        
+        transform: scale(0.8) translateY(40px) rotateX(15deg);
+        opacity: 0;
+        transform-origin: center bottom;
+        transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.4s ease;
+    }
+    #postOverlay.show .post-modal {
+        transform: scale(1) translateY(0) rotateX(0deg);
+        opacity: 1;
     }
     
     .modal-header { 
         padding: 12px 20px; border-bottom: 1px solid #363636; 
         display: flex; justify-content: space-between; align-items: center; 
+        background: #262626; z-index: 10;
     }
     .modal-header h3 { margin: 0; font-size: 16px; font-weight: 600; }
     .modal-header button { 
@@ -129,52 +142,66 @@
 
     .modal-body { flex: 1; position: relative; background: #000; display: flex; overflow: hidden; }
 
+    @keyframes fadeInStep {
+        from { opacity: 0; transform: translateY(10px) scale(0.98); }
+        to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
     .step-content { display: none; width: 100%; height: 100%; }
-    .step-content.active { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .step-content.active { 
+        display: flex; flex-direction: column; align-items: center; justify-content: center; 
+        animation: fadeInStep 0.4s cubic-bezier(0.2, 0.9, 0.3, 1) forwards;
+    }
 
-    /* Upload Step Styles */
-    .upload-container { text-align: center; }
-    .upload-container i { font-size: 80px; color: #a8a8a8; margin-bottom: 15px; }
+    .upload-container { text-align: center; padding: 20px; }
+    .upload-container i { font-size: 80px; color: #a8a8a8; margin-bottom: 15px; transition: transform 0.3s ease; }
+    .upload-container:hover i { transform: scale(1.1) rotate(5deg); color: #0095f6; } 
     .upload-container p { margin-bottom: 25px; font-size: 18px; color: #e0e0e0; }
-    .upload-label { cursor: pointer; display: inline-block; padding: 10px 24px; border-radius: 8px; font-weight: 600; }
+    .upload-label { cursor: pointer; display: inline-block; padding: 12px 28px; border-radius: 8px; font-weight: 600; transition: transform 0.2s, background 0.2s; }
+    .upload-label:active { transform: scale(0.95); }
 
-    /* Edit & Caption Step Layout */
     .edit-layout { display: flex; width: 100%; height: 100%; }
-    .preview-side { flex: 1.5; background: #000; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+    .preview-side { flex: 1.5; background: #000; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative; }
     .preview-side img { max-width: 100%; max-height: 100%; object-fit: contain; }
+    .preview-side video { width: 100%; height: 100%; object-fit: cover; }
     
     .controls-side { flex: 1; border-left: 1px solid #363636; padding: 20px; background: #262626; display: flex; flex-direction: column; overflow-y: auto; }
     
-    /* Filters */
     .filter-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
-    .filter-btn { background: #363636; color: white; border: none; padding: 10px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; transition: background 0.2s; }
+    .filter-btn { background: #363636; color: white; border: none; padding: 12px 10px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500; transition: background 0.2s, transform 0.1s; }
     .filter-btn:hover { background: #4a4a4a; }
+    .filter-btn:active { transform: scale(0.95); }
     
-    /* Caption Box */
     .caption-header { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; }
     .caption-header img { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; }
     textarea#caption { 
         width: 100%; height: 120px; background: #121212; border: 1px solid #363636; border-radius: 8px;
-        color: white; resize: none; outline: none; padding: 12px; font-size: 14px; box-sizing: border-box; transition: border 0.2s;
+        color: white; resize: none; outline: none; padding: 12px; font-size: 14px; box-sizing: border-box; transition: border 0.3s, box-shadow 0.3s;
     }
-    textarea#caption:focus { border-color: #555; }
+    textarea#caption:focus { border-color: #0095f6; box-shadow: 0 0 0 2px rgba(0, 149, 246, 0.2); }
     
-    /* Close Button */
     .close-modal-btn {
         position: absolute; top: 15px; right: 25px; background: none; border: none; 
-        color: #e0e0e0; font-size: 35px; cursor: pointer; transition: transform 0.2s; z-index: 10000;
+        color: #e0e0e0; font-size: 35px; cursor: pointer; transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.2s; z-index: 10000;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.5);
     }
-    .close-modal-btn:hover { transform: scale(1.1); color: white; }
+    .close-modal-btn:hover { transform: scale(1.2) rotate(90deg); color: white; } 
 
     .loading-screen {
         position: absolute; inset: 0; background: rgba(38, 38, 38, 0.95); z-index: 100;
         display: none; flex-direction: column; align-items: center; justify-content: center;
+        backdrop-filter: blur(5px);
     }
-    .loading-icon { font-size: 45px; color: #0095f6; animation: spin 1s linear infinite; }
+    .loading-icon { font-size: 45px; color: #0095f6; animation: spin 1s cubic-bezier(0.5, 0, 0.5, 1) infinite; }
     @keyframes spin { 100% { transform: rotate(360deg); } }
 
-    /* ✨ GLOBAL INCOMING CALL MODAL STYLES ✨ */
-    @keyframes slideInGlobal { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    /* ✨ JELLY-BOUNCE INCOMING CALL MODAL STYLES ✨ */
+    @keyframes jellyBounceIn { 
+        0% { transform: translateX(120%) scale(0.8) skewX(-10deg); opacity: 0; } 
+        60% { transform: translateX(-15px) scale(1.05) skewX(5deg); opacity: 1; } 
+        80% { transform: translateX(5px) scale(0.98) skewX(-2deg); } 
+        100% { transform: translateX(0) scale(1) skewX(0); opacity: 1; } 
+    }
     @keyframes pulse-ring-global { 
         0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(0, 149, 246, 0.7); } 
         70% { transform: scale(1.1); box-shadow: 0 0 0 15px rgba(0, 149, 246, 0); } 
@@ -182,62 +209,42 @@
     }
 
     /* =========================================================
-       🔥 MOBILE RESPONSIVENESS (THE FIXES) 🔥
+       🔥 MOBILE ELASTIC SHEET OVERRIDES 🔥
        ========================================================= */
     @media (max-width: 768px) {
-        /* 1. NATIVE MOBILE NOTIFICATIONS PANEL */
         .notification-side-panel {
-            left: 0;
-            width: 100%;
-            height: 100dvh; /* Uses device specific screen height */
-            /* Start completely hidden to the RIGHT edge */
+            left: 0; width: 100%; height: 100dvh; 
             transform: translateX(100%); 
-            border-right: none;
-            z-index: 20000; /* Ensure it covers bottom nav */
+            border-right: none; z-index: 20000; 
         }
-        
-        .notification-side-panel.active { 
-            /* Slide in to perfectly cover the screen */
-            transform: translateX(0); 
-        }
+        .notification-side-panel.active { transform: translateX(0); }
 
-        .panel-header {
-            padding: 15px 20px;
-        }
-
-        /* 2. NATIVE FULL-SCREEN POST MODAL */
-        #postOverlay {
-            align-items: flex-end; /* Snap to bottom */
-            background: #000; /* Solid background on mobile */
-        }
+        #postOverlay { align-items: flex-end; } 
 
         .post-modal { 
-            height: 100dvh; 
-            max-height: 100dvh; 
-            width: 100%; 
-            border-radius: 0; /* Remove rounded corners */
-            box-shadow: none;
+            height: 95dvh; max-height: 95dvh; width: 100%; 
+            border-radius: 28px 28px 0 0; 
+            box-shadow: 0 -10px 40px rgba(0,0,0,0.8);
+            transform: translateY(100%) scale(0.95);
+            transition: transform 0.55s cubic-bezier(0.32, 0.72, 0, 1.15);
+        }
+        #postOverlay.show .post-modal { 
+            transform: translateY(0) scale(1); 
         }
 
-        /* Fix modal close button positioning on mobile */
-        .close-modal-btn {
-            top: 5px;
-            right: 15px;
-            z-index: 10001;
+        .post-modal::before {
+            content: ''; position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+            width: 45px; height: 5px; background: rgba(255,255,255,0.2); border-radius: 5px; z-index: 20;
         }
 
-        /* Restructure edit layout for portrait phones */
+        .modal-header { padding: 22px 15px 12px 15px; } 
+        .close-modal-btn { top: 15px; right: 15px; font-size: 30px; }
+
         .edit-layout { flex-direction: column; }
-        .preview-side { flex: 1; min-height: 40%; }
-        .controls-side { flex: 1; border-left: none; border-top: 1px solid #363636; min-height: 60%; }
+        .preview-side { flex: 0 0 45%; min-height: 45%; background: #000; border-bottom: 1px solid #363636; }
+        .controls-side { flex: 1; border-left: none; padding: 15px; min-height: 0; overflow-y: auto; }
         
-        /* Adjust Global Call popup to not break screen edge */
-        #global-incoming-call-popup {
-            width: 90%;
-            left: 5%;
-            right: 5%;
-            top: 10px;
-        }
+        #global-incoming-call-popup { width: 90%; left: 5%; right: 5%; top: 15px; border-radius: 20px;}
     }
   </style>
 
@@ -305,9 +312,9 @@
             <div class="step-content active" id="step-upload">
                 <div class="upload-container">
                     <i class='bx bx-images'></i>
-                    <p>Select photos and videos here</p>
+                    <p id="uploadText">Select photos and videos here</p>
                     <label for="imageInput" class="btn-confirm upload-label">
-                        Select from computer
+                        Select from device
                     </label>
                     <input type="file" id="imageInput" accept="image/*,video/mp4,video/webm,video/quicktime" style="display: none;">
                 </div>
@@ -342,7 +349,7 @@
                 <div class="edit-layout">
                     <div class="preview-side">
                         <img id="finalImage" src="">
-                        <video id="finalVideoPreview" style="display:none; max-width: 100%; max-height: 100%;" controls loop></video>
+                        <video id="finalVideoPreview" style="display:none;" controls loop></video>
                     </div>
                     <div class="controls-side">
                         <div class="caption-header">
@@ -350,7 +357,10 @@
                             <span style="font-weight: 600;">{{ request.user.username }}</span>
                         </div>
                         <textarea id="caption" placeholder="Write a caption..."></textarea>
-                        <button onclick="sharePost()" class="btn-confirm" style="width: 100%; margin-top: auto; padding: 12px;">Share</button>
+                        
+                        <div style="margin-top: auto; display: flex; justify-content: flex-end; padding-top: 15px;">
+                            <button onclick="sharePost()" class="btn-confirm" style="flex: none; padding: 10px 24px; font-size: 14px; border-radius: 8px;">Share</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -358,26 +368,26 @@
             <div class="loading-screen" id="loadingScreen">
                 <div id="loadingState" style="text-align:center;">
                     <i class='bx bx-loader-alt loading-icon'></i>
-                    <p style="margin-top: 10px;">Sharing...</p>
+                    <p style="margin-top: 15px; font-weight: 600; letter-spacing: 0.5px;">Sharing...</p>
                 </div>
                 <div id="successState" style="text-align:center; display:none;">
-                    <i class='bx bx-check-circle' style="font-size:55px; color:#4bb543;"></i>
-                    <p style="margin-top: 10px;">Post shared!</p>
+                    <i class='bx bx-check-circle' style="font-size:65px; color:#4bb543; animation: fadeInStep 0.4s ease forwards;"></i>
+                    <p style="margin-top: 15px; font-weight: 600; font-size: 18px;">Post shared!</p>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<div id="global-incoming-call-popup" style="display: none; position: fixed; top: 20px; right: 20px; width: 300px; background: #262626; border: 1px solid #363636; border-radius: 12px; padding: 20px; z-index: 99999; box-shadow: 0 10px 40px rgba(0,0,0,0.8); text-align: center; animation: slideInGlobal 0.3s ease-out;">
+<div id="global-incoming-call-popup" style="display: none; position: fixed; top: 20px; right: 20px; width: 300px; background: rgba(38,38,38, 0.95); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 20px; z-index: 99999; box-shadow: 0 15px 40px rgba(0,0,0,0.8); text-align: center; animation: jellyBounceIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;">
     <div style="width: 60px; height: 60px; background: #0095f6; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px auto; animation: pulse-ring-global 2s infinite;">
         <i class='bx bx-video' style="font-size: 32px; color: white;"></i>
     </div>
     <h3 id="global-incoming-caller-name" style="margin: 0 0 5px 0; font-size: 18px;">Username</h3>
     <p style="margin: 0 0 20px 0; color: #a8a8a8; font-size: 14px;">Incoming video call...</p>
     <div style="display: flex; gap: 10px; justify-content: center;">
-        <button onclick="declineGlobalIncomingCall()" style="flex: 1; background: #363636; color: white; border: none; padding: 10px; border-radius: 8px; cursor: pointer; font-weight: 600; transition: 0.2s;">Decline</button>
-        <button id="global-accept-call-btn" style="flex: 1; background: #28a745; color: white; border: none; padding: 10px; border-radius: 8px; cursor: pointer; font-weight: 600; transition: 0.2s;">Accept</button>
+        <button onclick="declineGlobalIncomingCall()" style="flex: 1; background: #363636; color: white; border: none; padding: 12px; border-radius: 10px; cursor: pointer; font-weight: 600; transition: transform 0.2s, background 0.2s;">Decline</button>
+        <button id="global-accept-call-btn" style="flex: 1; background: #28a745; color: white; border: none; padding: 12px; border-radius: 10px; cursor: pointer; font-weight: 600; transition: transform 0.2s, background 0.2s;">Accept</button>
     </div>
 </div>
 
@@ -392,20 +402,17 @@
     function initGlobalCallListeners() {
         if (!currentUserIdGlobal || currentUserIdGlobal === "None") return;
 
-        // Fetch all of the user's active threads
         fetch('/api/chat/threads/')
         .then(res => res.json())
         .then(threads => {
             const wsProtocol = window.location.protocol === "https:" ? "wss://" : "ws://";
             
             threads.forEach(thread => {
-                // Connect a background WebSocket for each active chat
                 const ws = new WebSocket(`${wsProtocol}${window.location.host}/ws/chat/${thread.id}/`);
                 
                 ws.onmessage = function(e) {
                     const data = JSON.parse(e.data);
                     
-                    // If someone sends the exact "started a call" string, trigger the popup!
                     if (data.message === '📞 Started a video call' && parseInt(data.sender_id) !== parseInt(currentUserIdGlobal)) {
                         showGlobalIncomingCall(data.sender_username, thread.id);
                     }
@@ -417,7 +424,6 @@
     }
 
     function showGlobalIncomingCall(callerName, threadId) {
-        // Prevent showing the popup if the user is already inside the active call room
         if (window.location.pathname.includes(`/direct/call/${threadId}`)) return;
 
         const popup = document.getElementById('global-incoming-call-popup');
@@ -430,17 +436,19 @@
 
         popup.style.display = 'block';
 
-        // Auto-hide the popup after 30 seconds if unanswered
         setTimeout(() => { popup.style.display = 'none'; }, 30000);
     }
 
     function declineGlobalIncomingCall() {
-        document.getElementById('global-incoming-call-popup').style.display = 'none';
+        const popup = document.getElementById('global-incoming-call-popup');
+        popup.style.animation = "none"; 
+        popup.style.opacity = "0";
+        popup.style.transform = "scale(0.9)";
+        popup.style.transition = "opacity 0.2s ease, transform 0.2s ease";
+        setTimeout(() => popup.style.display = 'none', 200);
     }
 
-    // Start listening as soon as any page loads
     window.addEventListener('load', initGlobalCallListeners);
-
 
     // --- NOTIFICATION PANEL JS TOGGLE & MARK AS READ ---
     function toggleNotifications() {
@@ -519,9 +527,9 @@
     let currentStep = 0;
     const steps = ['step-upload', 'step-crop', 'step-filter', 'step-caption'];
     
-    // NEW VARS FOR VIDEO
     let isVideo = false;
     let uploadedVideoFile = null;
+    let currentFlow = 'post'; 
 
     function showStep(index) {
         currentStep = index;
@@ -531,7 +539,10 @@
 
         const prevBtn = document.getElementById('modalPrevBtn');
         const nextBtn = document.getElementById('modalNextBtn');
-        const titles = ["Create new post", "Crop", "Edit", "Caption"];
+        
+        let step0Title = (currentFlow === 'reel') ? "Create new Reel" : "Create new post";
+        let finalTitle = (currentFlow === 'reel' || isVideo) ? "New Reel" : "New Post";
+        const titles = [step0Title, "Crop", "Edit", finalTitle];
 
         prevBtn.style.visibility = (index === 0) ? 'hidden' : 'visible';
         
@@ -541,16 +552,24 @@
             nextBtn.style.display = 'block';
         }
         
-        // Update Title (Handles Reels title override)
-        if (isVideo && index === 3) {
-            document.getElementById('modalTitle').innerText = "New Reel";
-        } else {
-            document.getElementById('modalTitle').innerText = titles[index];
-        }
+        document.getElementById('modalTitle').innerText = titles[index];
     }
 
-    window.openCreateModal = function() {
+    window.openCreateModal = function(flowType = 'post') {
+        currentFlow = flowType;
         document.getElementById('postOverlay').classList.add('show');
+        
+        const fileInput = document.getElementById('imageInput');
+        const uploadText = document.getElementById('uploadText');
+        
+        if (currentFlow === 'reel') {
+            fileInput.accept = "video/mp4,video/webm,video/quicktime";
+            uploadText.innerText = "Select a video for your Reel";
+        } else {
+            fileInput.accept = "image/*,video/mp4,video/webm,video/quicktime";
+            uploadText.innerText = "Select photos and videos here";
+        }
+        
         showStep(0);
     };
 
@@ -560,20 +579,21 @@
             cropper.destroy();
             cropper = null;
         }
-        // Reset Inputs & Variables
-        document.getElementById('imageInput').value = '';
-        isVideo = false;
-        uploadedVideoFile = null;
         
-        // Reset previews
-        document.getElementById('finalVideoPreview').src = "";
-        document.getElementById('finalVideoPreview').style.display = 'none';
-        document.getElementById('finalImage').style.display = 'block';
-        
-        // Reset Loader UI
-        document.getElementById('loadingScreen').style.display = "none";
-        document.getElementById('loadingState').style.display = 'block';
-        document.getElementById('successState').style.display = 'none';
+        setTimeout(() => {
+            document.getElementById('imageInput').value = '';
+            isVideo = false;
+            uploadedVideoFile = null;
+            currentFlow = 'post';
+            
+            document.getElementById('finalVideoPreview').src = "";
+            document.getElementById('finalVideoPreview').style.display = 'none';
+            document.getElementById('finalImage').style.display = 'block';
+            
+            document.getElementById('loadingScreen').style.display = "none";
+            document.getElementById('loadingState').style.display = 'block';
+            document.getElementById('successState').style.display = 'none';
+        }, 400);
     };
 
     window.nextStep = function() {
@@ -591,7 +611,6 @@
 
     window.prevStep = function() {
         if (currentStep === 3 && isVideo) {
-            // If it's a video, hitting back from caption takes you back to upload screen
             showStep(0);
             isVideo = false;
             uploadedVideoFile = null;
@@ -617,31 +636,24 @@
         finalImg.src = canvas.toDataURL("image/jpeg", 0.9);
     };
 
-    // --- MAIN FILE INPUT LISTENER (Handles Images OR Videos) ---
     document.getElementById('imageInput').addEventListener('change', function(e) {
         const file = e.target.files[0];
         if (file) {
-            
-            // CHECK IF IT IS A VIDEO (REEL)
             if (file.type.startsWith('video/')) {
                 isVideo = true;
                 uploadedVideoFile = file;
                 
-                // Switch UI in Caption Step from Image to Video
                 document.getElementById('finalImage').style.display = 'none';
                 const videoPreview = document.getElementById('finalVideoPreview');
                 videoPreview.src = URL.createObjectURL(file);
                 videoPreview.style.display = 'block';
                 
-                // Skip Crop and Filter steps entirely
                 showStep(3);
                 
             } else {
-                // IT IS AN IMAGE (POST)
                 isVideo = false;
                 uploadedVideoFile = null;
                 
-                // Ensure UI is set back to Image mode
                 document.getElementById('finalVideoPreview').style.display = 'none';
                 document.getElementById('finalImage').style.display = 'block';
                 
@@ -668,7 +680,6 @@
         }
     });
 
-    // --- SHARE POST OR REEL LOGIC ---
     window.sharePost = function() {
         const caption = document.getElementById('caption').value;
         const loader = document.getElementById('loadingScreen');
@@ -677,16 +688,13 @@
         loader.style.display = 'flex';
 
         if (isVideo) {
-            // REEL UPLOAD (Needs FormData because video files are large)
             const formData = new FormData();
             formData.append('video', uploadedVideoFile);
             formData.append('caption', caption);
 
             fetch("/api/reels/create/", {
                 method: "POST",
-                headers: {
-                    "X-CSRFToken": csrfToken
-                },
+                headers: { "X-CSRFToken": csrfToken },
                 body: formData
             })
             .then(res => {
@@ -705,7 +713,6 @@
             });
             
         } else {
-            // REGULAR IMAGE POST UPLOAD (Uses your existing Base64 JSON logic)
             const imageData = document.getElementById('finalImage').src;
 
             if (!imageData || imageData.startsWith('data:image/svg+xml')) {
@@ -742,7 +749,6 @@
         }
     };
 
-    // --- START CHAT FROM PROFILE LOGIC ---
     function startChatWithUser(userId) {
         const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
         
