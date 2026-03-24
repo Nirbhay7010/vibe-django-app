@@ -57,7 +57,8 @@
         .reel-video {
             width: 100%;
             height: 100%;
-            object-fit: cover;
+            object-fit: contain; /* Changed to contain to fix the zooming/cropping */
+            background-color: #000; /* Ensures empty space is black */
             cursor: pointer;
         }
 
@@ -258,7 +259,7 @@
         }
 
         .comment-item { display: flex; gap: 12px; margin-bottom: 20px; }
-        .comment-avatar { width: 35px; height: 35px; border-radius: 50%; background: #444; flex-shrink: 0; }
+        .comment-avatar { width: 35px; height: 35px; border-radius: 50%; flex-shrink: 0; }
         .comment-text { font-size: 14px; line-height: 1.4; }
         .comment-text strong { font-weight: 600; margin-right: 5px; }
 
@@ -309,7 +310,7 @@
                     {% if reel.user.profile.profile_image %}
                         <img src="{{ reel.user.profile.profile_image.url }}" class="reel-avatar">
                     {% else %}
-                        <div class="reel-avatar" style="background:#444;"></div>
+                        <img src="https://ui-avatars.com/api/?name={{ reel.user.username }}&background=444&color=fff" class="reel-avatar">
                     {% endif %}
                     <span class="username">{{ reel.user.username }}</span>
                 </a>
@@ -364,6 +365,8 @@
                     <div class="comment-avatar">
                         {% if comment.user.profile.profile_image %}
                             <img src="{{ comment.user.profile.profile_image.url }}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">
+                        {% else %}
+                            <img src="https://ui-avatars.com/api/?name={{ comment.user.username }}&background=444&color=fff" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">
                         {% endif %}
                     </div>
                     <div class="comment-text"><strong>{{ comment.user.username }}</strong> {{ comment.text }}</div>
@@ -376,7 +379,7 @@
                 {% if request.user.profile.profile_image %}
                     <img src="{{ request.user.profile.profile_image.url }}">
                 {% else %}
-                    <div style="width:35px; height:35px; border-radius:50%; background:#444;"></div>
+                    <img src="https://ui-avatars.com/api/?name={{ request.user.username }}&background=444&color=fff">
                 {% endif %}
                 <input type="text" id="comment-input-{{ reel.id }}" placeholder="Add a comment...">
                 <button onclick="postComment({{ reel.id }})">Post</button>
@@ -392,12 +395,20 @@
             <div class="share-list">
                 {% for thread in user_threads %}
                 <div class="thread-item" style="display:flex; align-items:center; justify-content:space-between; padding:12px 0; border-bottom:1px solid #363636;">
+                    
                     <div style="display:flex; align-items:center; gap:12px;">
-                        <div style="width:40px; height:40px; border-radius:50%; background:#444; display:flex; align-items:center; justify-content:center;"><i class='bx bx-user'></i></div>
-                        <span style="font-weight:600; font-size:14px;">
-                            {% for p in thread.participants.all %}{% if p != request.user %}{{ p.username }}{% endif %}{% endfor %}
-                        </span>
+                        {% for p in thread.participants.all %}
+                            {% if p != request.user %}
+                                {% if p.profile.profile_image %}
+                                    <img src="{{ p.profile.profile_image.url }}" style="width:40px; height:40px; border-radius:50%; object-fit:cover;">
+                                {% else %}
+                                    <img src="https://ui-avatars.com/api/?name={{ p.username }}&background=444&color=fff" style="width:40px; height:40px; border-radius:50%; object-fit:cover;">
+                                {% endif %}
+                                <span style="font-weight:600; font-size:14px;">{{ p.username }}</span>
+                            {% endif %}
+                        {% endfor %}
                     </div>
+
                     <button class="send-btn" id="send-btn-{{ reel.id }}-{{ thread.id }}" onclick="shareReel({{ reel.id }}, {{ thread.id }})" style="background:#0095f6; color:#fff; border:none; padding:6px 16px; border-radius:6px; font-weight:600; cursor:pointer;">Send</button>
                 </div>
                 {% empty %}

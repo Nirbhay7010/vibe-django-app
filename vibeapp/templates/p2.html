@@ -86,7 +86,7 @@
         cursor: pointer;
         display: inline-block;
         text-align: center;
-        white-space: nowrap; /* Prevents text breaking */
+        white-space: nowrap; 
     }
 
     .action-btn:hover { background: #475569; }
@@ -99,7 +99,7 @@
         position: relative;
         display: flex;
         align-items: center;
-        flex-shrink: 0; /* Prevents squishing */
+        flex-shrink: 0; 
     }
 
     .settings-btn {
@@ -211,6 +211,39 @@
     .tab:hover { color: #cbd5e1; }
     .tab.active { color: #fff; border-top: 1px solid #fff; margin-top: -1px; }
 
+    /* ===== POST GRIDS ===== */
+    .tab-content {
+        display: none; /* Hidden by default */
+        padding-top: 20px;
+    }
+    .tab-content.active {
+        display: block; /* Shows when active */
+    }
+
+    .post-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 5px;
+    }
+
+    .grid-item {
+        aspect-ratio: 1 / 1;
+        background: #0f172a;
+        overflow: hidden;
+        cursor: pointer;
+    }
+
+    .grid-item img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.3s ease, opacity 0.3s ease;
+    }
+
+    .grid-item:hover img {
+        opacity: 0.8;
+    }
+
     /* ===== MODAL OVERLAY ===== */
     .modal-overlay {
         position: fixed;
@@ -246,14 +279,11 @@
     .modal-opt:hover { background: #334155; }
     .modal-opt.danger { color: #f87171; font-weight: 700; }
 
-    /* =========================================
-       🔥 MOBILE RESPONSIVENESS (FLEX FIX) 🔥
-       ========================================= */
+    /* ===== MOBILE RESPONSIVENESS ===== */
     @media (max-width: 768px) {
         .profile-container { padding: 15px; }
         .profile-header { flex-direction: column; gap: 15px; margin-bottom: 20px; }
 
-        /* Align Avatar and Stats */
         .mobile-top-section {
             display: flex;
             align-items: center;
@@ -271,10 +301,8 @@
         }
 
         .stats-item { flex-direction: column; align-items: center; }
-
         .bio { padding: 0 5px; }
 
-        /* Force Username to Top, Action Buttons to bottom */
         .top-row {
             flex-direction: column;
             align-items: flex-start;
@@ -284,21 +312,18 @@
 
         .top-row h2 { font-size: 18px; padding-left: 5px; }
 
-        /* This forces the buttons & gear to stay on ONE line */
         .action-group {
             width: 100%;
             display: flex;
-            flex-wrap: nowrap; /* Prevents wrapping */
+            flex-wrap: nowrap; 
         }
 
-        .action-group .action-btn {
-            flex: 1; /* Both buttons take equal space */
-            padding: 8px 0;
-            font-size: 13px;
-        }
+        .action-group .action-btn { flex: 1; padding: 8px 0; font-size: 13px; }
 
         .tabs { gap: 0; justify-content: space-around; }
         .tab { flex: 1; text-align: center; }
+        
+        .post-grid { gap: 2px; } /* Tighter gap on mobile */
     }
 </style>
 {% endblock %}
@@ -380,11 +405,73 @@
         </header>
 
         <div class="tabs">
-            <div class="tab active">POSTS</div>
-            <div class="tab">REELS</div>
-            <div class="tab">TAGGED</div>
+            <div class="tab active" data-target="posts-grid">POSTS</div>
+            
+            {% if request.user == target_user %}
+                <div class="tab" data-target="saved-grid">SAVED</div>
+            {% endif %}
         </div>
         
+        <div id="posts-grid" class="tab-content active">
+            {% if can_view %}
+                <div class="post-grid">
+                    {% for post in posts %}
+                        <div class="grid-item">
+                            <a href="#"><img src="{{ post.image.url }}" alt="Post"></a>
+                        </div>
+                    {% empty %}
+                        <div style="grid-column: span 3; text-align: center; padding: 40px; color: gray;">
+                            <i class='bx bx-camera' style="font-size: 48px;"></i>
+                            <p>No posts yet.</p>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div style="text-align: center; padding: 40px; color: #cbd5e1;">
+                    <i class='bx bx-lock-alt' style="font-size: 48px; color: #94a3b8;"></i>
+                    <h3 style="margin: 10px 0 5px 0;">This Account is Private</h3>
+                    <p style="font-size: 14px; margin: 0;">Follow to see their photos and videos.</p>
+                </div>
+            {% endif %}
+        </div>
+
+        {% if request.user == target_user %}
+        <div id="saved-grid" class="tab-content">
+            
+            <h4 style="margin: 0 0 15px 5px; color: #94a3b8; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">Saved Posts</h4>
+            <div class="post-grid">
+                {% for post in saved_posts %}
+                    <div class="grid-item">
+                        <a href="#"><img src="{{ post.image.url }}" alt="Saved Post"></a>
+                    </div>
+                {% empty %}
+                    <div style="grid-column: span 3; text-align: center; padding: 20px; color: gray;">
+                        <p style="font-size: 14px;">No saved posts.</p>
+                    </div>
+                {% endfor %}
+            </div>
+
+            <h4 style="margin: 30px 0 15px 5px; color: #94a3b8; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">Saved Reels</h4>
+            <div class="post-grid">
+                {% for reel in saved_reels %}
+                    <div class="grid-item" style="position: relative;">
+                        <a href="#">
+                            <video style="width: 100%; height: 100%; object-fit: cover;">
+                                <source src="{{ reel.video.url }}" type="video/mp4">
+                            </video>
+                            <i class='bx bx-play-circle' style="position: absolute; top: 8px; right: 8px; color: white; font-size: 24px; text-shadow: 0 2px 4px rgba(0,0,0,0.5);"></i>
+                        </a>
+                    </div>
+                {% empty %}
+                    <div style="grid-column: span 3; text-align: center; padding: 20px; color: gray;">
+                        <p style="font-size: 14px;">No saved reels.</p>
+                    </div>
+                {% endfor %}
+            </div>
+
+        </div>
+        {% endif %}
+
     </div>
 </div>
 
@@ -442,6 +529,27 @@
                 }
             });
         }
+
+        // --- NEW TAB SWITCHING LOGIC ---
+        const tabs = document.querySelectorAll('.tab');
+        const contents = document.querySelectorAll('.tab-content');
+
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                // 1. Remove active state from all tabs and contents
+                tabs.forEach(t => t.classList.remove('active'));
+                contents.forEach(c => c.classList.remove('active'));
+
+                // 2. Add active state to clicked tab
+                tab.classList.add('active');
+
+                // 3. Show the corresponding grid
+                const targetId = tab.getAttribute('data-target');
+                if(targetId) {
+                    document.getElementById(targetId).classList.add('active');
+                }
+            });
+        });
     });
 </script>
 {% endblock %}

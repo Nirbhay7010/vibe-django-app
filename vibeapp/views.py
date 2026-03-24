@@ -18,7 +18,7 @@ from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 
 # Local imports
-from .models import Profile, Post, Follow, Notification, Thread, Message, Reel, ReelComment
+from .models import Profile, Post, Follow, Notification, Thread, Message, Reel, ReelComment, Comment
 from .forms import ProfileSetupForm, ProfileUpdateForm
 from .serializers import ThreadSerializer, MessageSerializer
 
@@ -114,9 +114,13 @@ def Vibe(request):
     for u in suggested_users:
         u.is_following_you = u.id in people_who_follow_me
 
+    # Fetch user threads so the Share Modal has chats to display
+    user_threads = Thread.objects.filter(participants=request.user)
+
     return render(request, "vide.html", {
         "posts": posts,
-        "users": suggested_users
+        "users": suggested_users,
+        "user_threads": user_threads
     })
 
 @login_required(login_url='login')
@@ -158,6 +162,13 @@ def user_profile(request, user_id):
     else:
         posts = []
 
+    # Fetch saved items, restricted to the account owner
+    saved_posts = []
+    saved_reels = []
+    if request.user == target_user:
+        saved_posts = Post.objects.filter(saved_by=request.user).order_by('-created_at')
+        saved_reels = Reel.objects.filter(saved_by=request.user).order_by('-created_at')
+
     followers_count = Follow.objects.filter(following=target_user, status='accepted').count()
     following_count = Follow.objects.filter(follower=target_user, status='accepted').count()
 
@@ -170,8 +181,14 @@ def user_profile(request, user_id):
         'is_requested': is_requested,
         'is_followed_by': is_followed_by,
         'is_private': not is_public_profile,
-        'can_view': can_view
+        'can_view': can_view,
+        
+        # --- Make sure these are passed to the template ---
+        'saved_posts': saved_posts,
+        'saved_reels': saved_reels,
     }
+    # Rendering user_profile.html.
+    # Make sure your profile template logic (which you called p2 earlier) is actually inside user_profile.html!
     return render(request, 'user_profile.html', context)
 
 
@@ -376,6 +393,85 @@ def delete_post(request, post_id):
         post.delete()
         messages.success(request, "Post deleted successfully.")
     return redirect('profile')
+
+# ==========================
+# FEED POST ACTIONS
+# ==========================
+
+@login_required
+def like_post(request, post_id):
+    if request.method == 'POST':
+        post = get_object_or_404(Post, id=post_id)
+        if request.user in post.likes.all():
+            post.likes.remove(request.user)
+            liked = False
+        else:
+            post.likes.add(request.user)
+            liked = True
+            
+        return JsonResponse({
+            'status': 'success', 
+            'liked': liked, 
+            'like_count': post.likes.count()
+        })
+    return JsonResponse({'status': 'error', 'message': 'Invalid request'})
+
+
+@login_required
+def save_post(request, post_id):
+    if request.method == 'POST':
+        post = get_object_or_404(Post, id=post_id)
+        if request.user in post.saved_by.all():
+            post.saved_by.remove(request.user)
+            saved = False
+        else:
+            post.saved_by.add(request.user)
+            saved = True
+            
+        return JsonResponse({'status': 'success', 'saved': saved})
+    return JsonResponse({'status': 'error'}, status=400)
+
+
+@login_required
+def comment_post(request, post_id):
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        text = data.get('text', '').strip()
+        
+        if text:
+            post = get_object_or_404(Post, id=post_id)
+            comment = Comment.objects.create(
+                post=post,
+                user=request.user,
+                text=text
+            )
+            return JsonResponse({
+                'status': 'success', 
+                'username': request.user.username,
+                'text': comment.text,
+                'comment_count': post.comments.count()
+            })
+    return JsonResponse({'status': 'error', 'message': 'Comment cannot be empty'})
+
+
+@login_required
+def share_post(request, post_id, thread_id):
+    if request.method == 'POST':
+        post = get_object_or_404(Post, id=post_id)
+        thread = get_object_or_404(Thread, id=thread_id)
+        
+        if request.user in thread.participants.all():
+            Message.objects.create(
+                thread=thread,
+                sender=request.user,
+                content="Check out this post!", 
+                shared_post=post
+            )
+            return JsonResponse({'status': 'success', 'message': 'Post sent!'})
+        else:
+            return JsonResponse({'status': 'error', 'message': 'Not a participant in this thread'}, status=403)
+            
+    return JsonResponse({'status': 'error', 'message': 'Invalid request'})
 
 
 # ==========================

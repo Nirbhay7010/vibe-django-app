@@ -4,33 +4,86 @@
 {% block title %}Vibe | Home{% endblock %}
 
 {% block content %}
+<style>
+  /* --- HEADER RESPONSIVE BEHAVIOR --- */
+  .topbar { display: flex; justify-content: space-between; align-items: center; padding: 10px 15px; gap: 15px; }
+  .mobile-logo { display: none; color: #fff; font-size: 32px; }
+  .topbar-search { flex: 1; max-width: 350px; position: relative; }
+  .search-box { width: 100%; display: flex; align-items: center; background: #262626; border-radius: 8px; padding: 8px 15px; }
+  .search-box input { background: transparent; border: none; color: white; outline: none; width: 100%; margin-left: 10px; }
+
+  @media (max-width: 768px) {
+      .mobile-logo { display: block; }
+      .desktop-notifications { display: none; }
+      .topbar-search { margin-left: auto; max-width: 70%; }
+  }
+
+  /* --- SEARCH DROPDOWN STYLES --- */
+  .search-dropdown {
+    position: absolute; top: 45px; right: 0; width: 350px; max-width: 90vw; 
+    min-height: 250px; background-color: #000; border: 1px solid #333;
+    border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.8); padding: 15px;
+    display: none; z-index: 1000;
+  }
+  .search-dropdown.show { display: block; }
+  .search-dropdown-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #333; padding-bottom: 10px; }
+  .search-dropdown-header h4 { color: #fff; margin: 0; font-size: 16px; }
+  .search-dropdown-header .clear-btn { color: #0095f6; font-size: 14px; text-decoration: none; }
+  .search-dropdown-content .no-recent { color: #888; text-align: center; margin-top: 30px; font-size: 14px; }
+
+  /* --- BOTTOM SHEET MODALS (For Comments & Share) --- */
+  .bottom-sheet {
+      position: fixed; bottom: -100%; left: 50%; transform: translateX(-50%); 
+      width: 100%; max-width: 450px; height: 65dvh; background: #262626;
+      border-top-left-radius: 20px; border-top-right-radius: 20px;
+      z-index: 9999; transition: bottom 0.35s cubic-bezier(0.25, 0.8, 0.25, 1);
+      display: flex; flex-direction: column; box-shadow: 0 -10px 40px rgba(0,0,0,0.8);
+  }
+  .bottom-sheet.active { bottom: 0; }
+  .drag-pill { width: 40px; height: 5px; background: rgba(255,255,255,0.2); border-radius: 5px; margin: 12px auto 5px auto; }
+  .sheet-header { padding: 10px 15px 15px 15px; text-align: center; border-bottom: 1px solid #363636; font-weight: 600; font-size: 16px; position: relative; }
+  .close-btn { position: absolute; right: 15px; top: 10px; cursor: pointer; font-size: 26px; color: #aaa; }
+  .comments-list, .share-list { flex: 1; overflow-y: auto; padding: 15px; overscroll-behavior-y: contain; }
+  .comment-item { display: flex; gap: 12px; margin-bottom: 20px; }
+  .comment-avatar { width: 35px; height: 35px; border-radius: 50%; flex-shrink: 0; }
+  .comment-text { font-size: 14px; line-height: 1.4; color: #fff; }
+  .comment-text strong { font-weight: 600; margin-right: 5px; color: #fff; }
+  .comment-input-area { display: flex; align-items: center; padding: 15px; padding-bottom: max(15px, env(safe-area-inset-bottom)); border-top: 1px solid #363636; background: #262626; gap: 10px; }
+  .comment-input-area img { width: 35px; height: 35px; border-radius: 50%; object-fit: cover; }
+  .comment-input-area input { flex: 1; background: transparent; border: none; color: white; font-size: 14px; outline: none; }
+  .comment-input-area button { background: none; border: none; color: #0095f6; font-weight: 600; font-size: 14px; cursor: pointer; }
+
+  /* Feed overlay when modal is open */
+  .feed-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 9998; }
+  .feed-overlay.active { display: block; }
+</style>
+
 <div class="main-container">
 
+    {% csrf_token %}
+
+    <div class="feed-overlay" id="feedOverlay" onclick="closeAllSheets()"></div>
+
     <div class="topbar">
-        <form action="{% url 'search_results' %}" method="GET" style="position: relative;">
+        <a href="{% url 'Vibe' %}" class="mobile-logo"><i class='bx bx-pulse logo-icon'></i></a>
+        <form action="{% url 'search_results' %}" method="GET" class="topbar-search">
             <div class="search-box">
-                <i class='bx bx-search'></i>
+                <i class='bx bx-search' style="color: #888;"></i>
                 <input type="text" name="q" id="topSearchInput" placeholder="Search" autocomplete="off">
             </div>
             <button type="submit" style="display: none;">Search</button>
-
             <div class="search-dropdown" id="searchDropdown">
                 <div class="search-dropdown-header">
-                    <h4>Recent</h4>
-                    <a href="javascript:void(0)" class="clear-btn">Clear all</a>
+                    <h4>Recent</h4><a href="javascript:void(0)" class="clear-btn">Clear all</a>
                 </div>
-                <div class="search-dropdown-content">
-                    <p class="no-recent">No recent searches.</p>
-                </div>
+                <div class="search-dropdown-content"><p class="no-recent">No recent searches.</p></div>
             </div>
         </form>
-
-        <div class="top-icons">
+        <div class="top-icons desktop-notifications">
             <a href="#" onclick="toggleNotifications(); return false;" style="text-decoration:none; color:inherit; position: relative;">
                 <i class='bx bx-heart' style="font-size:24px; cursor:pointer;"></i>
-                
                 {% if request.user.profile.unread_notifications_count > 0 %}
-                    <span class="notification-badge" id="top-notif-badge" style="position: absolute; top: -5px; right: -5px;">
+                    <span class="notification-badge" id="top-notif-badge" style="position: absolute; top: -5px; right: -5px; background: red; color: white; border-radius: 50%; padding: 2px 6px; font-size: 10px;">
                         {{ request.user.profile.unread_notifications_count }}
                     </span>
                 {% endif %}
@@ -40,43 +93,127 @@
 
     <div class="content">
         <div class="feed">
-            <div class="stories">
-                <div class="story">
-                    <div class="story-ring">
-                        <img src="{{ request.user.profile.profile_image.url }}">
+            <div class="stories" style="display: flex; gap: 15px; padding: 15px 0; overflow-x: auto;">
+                <div class="story" style="display: flex; flex-direction: column; align-items: center; width: 70px;">
+                    <div class="story-ring" style="width: 64px; height: 64px; border-radius: 50%; background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%); padding: 2px; display: flex; justify-content: center; align-items: center;">
+                        {% if request.user.profile.profile_image %}
+                            <img src="{{ request.user.profile.profile_image.url }}" style="width: 100%; height: 100%; border-radius: 50%; border: 2px solid #000; object-fit: cover;">
+                        {% else %}
+                            <img src="https://ui-avatars.com/api/?name={{ request.user.username }}&background=444&color=fff" style="width: 100%; height: 100%; border-radius: 50%; border: 2px solid #000; object-fit: cover;">
+                        {% endif %}
                     </div>
-                    <span style="font-size:12px; display:block; text-align:center; margin-top:5px;">Your story</span>
+                    <span style="font-size:12px; display:block; text-align:center; margin-top:5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%;">Your story</span>
                 </div>
             </div>
 
             {% for post in posts %}
-            <div class="post">
-                <div class="post-header">
+            <div class="post" id="post-{{ post.id }}" style="margin-bottom: 25px; border-bottom: 1px solid #262626; padding-bottom: 15px;">
+                <div class="post-header" style="display: flex; align-items: center; padding: 10px 15px;">
                     <a href="{% url 'user_profile' post.user.id %}" style="text-decoration:none; color:inherit; display:flex; align-items:center; gap:10px;">
                         {% if post.user.profile.profile_image %}
-                            <img src="{{ post.user.profile.profile_image.url }}" class="post-avatar">
+                            <img src="{{ post.user.profile.profile_image.url }}" class="post-avatar" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;">
+                        {% else %}
+                            <img src="https://ui-avatars.com/api/?name={{ post.user.username }}&background=444&color=fff" class="post-avatar" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;">
                         {% endif %}
                         <span style="font-weight:600; font-size:14px;">{{ post.user.username }}</span>
                     </a>
                     <i class='bx bx-dots-horizontal-rounded' style="margin-left:auto; cursor:pointer;"></i>
                 </div>
 
-                <div class="post-image">
-                    <img src="{{ post.image.url }}">
+                <div class="post-image" style="width: 100%;">
+                    <img src="{{ post.image.url }}" style="width: 100%; height: auto; object-fit: cover;">
                 </div>
 
-                <div class="actions" style="padding: 10px; display:flex; gap:15px; font-size:26px;">
-                    <i class='bx bx-heart'></i>
-                    <i class='bx bx-message-rounded'></i>
-                    <i class='bx bx-paper-plane'></i>
-                    <i class='bx bx-bookmark' style="margin-left:auto;"></i>
+                <div class="actions" style="padding: 10px 15px; display:flex; gap:15px; font-size:26px;">
+                    <i id="post-like-icon-{{ post.id }}" 
+                       class='bx {% if request.user in post.likes.all %}bxs-heart{% else %}bx-heart{% endif %}' 
+                       onclick="likePost({{ post.id }})" 
+                       style="cursor:pointer; transition: transform 0.1s; {% if request.user in post.likes.all %}color: #ff3040;{% endif %}">
+                    </i>
+                    
+                    <i class='bx bx-message-rounded' style="cursor:pointer;" onclick="togglePostComments({{ post.id }})"></i>
+                    
+                    <i class='bx bx-paper-plane' style="cursor:pointer;" onclick="togglePostShare({{ post.id }})"></i>
+                    
+                    <i id="post-save-icon-{{ post.id }}" 
+                       class='bx {% if request.user in post.saved_by.all %}bxs-bookmark{% else %}bx-bookmark{% endif %}' 
+                       onclick="savePost({{ post.id }})" 
+                       style="margin-left:auto; cursor:pointer; transition: transform 0.1s;">
+                    </i>
+                </div>
+
+                <div style="padding: 0 15px 5px; font-size: 14px; font-weight: 600;" id="post-like-count-{{ post.id }}">
+                    {{ post.likes.count }} likes
                 </div>
 
                 {% if post.caption %}
-                <div style="padding: 0 10px 10px;">
+                <div style="padding: 0 15px 10px; font-size: 14px;">
                     <strong>{{ post.user.username }}</strong> {{ post.caption }}
                 </div>
                 {% endif %}
+
+                <div class="bottom-sheet" id="post-comments-sheet-{{ post.id }}">
+                    <div class="drag-pill"></div>
+                    <div class="sheet-header">
+                        Comments
+                        <i class='bx bx-x close-btn' onclick="togglePostComments({{ post.id }})"></i>
+                    </div>
+                    <div class="comments-list" id="post-comments-list-{{ post.id }}">
+                        {% for comment in post.comments.all %}
+                        <div class="comment-item">
+                            <div class="comment-avatar">
+                                {% if comment.user.profile.profile_image %}
+                                    <img src="{{ comment.user.profile.profile_image.url }}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">
+                                {% else %}
+                                    <img src="https://ui-avatars.com/api/?name={{ comment.user.username }}&background=444&color=fff" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">
+                                {% endif %}
+                            </div>
+                            <div class="comment-text"><strong>{{ comment.user.username }}</strong> {{ comment.text }}</div>
+                        </div>
+                        {% empty %}
+                        <div class="comment-item" style="color: #888; justify-content:center; padding-top:20px;">No comments yet.</div>
+                        {% endfor %}
+                    </div>
+                    <div class="comment-input-area">
+                        {% if request.user.profile.profile_image %}
+                            <img src="{{ request.user.profile.profile_image.url }}">
+                        {% else %}
+                            <img src="https://ui-avatars.com/api/?name={{ request.user.username }}&background=444&color=fff">
+                        {% endif %}
+                        <input type="text" id="post-comment-input-{{ post.id }}" placeholder="Add a comment...">
+                        <button onclick="submitPostComment({{ post.id }})">Post</button>
+                    </div>
+                </div>
+
+                <div class="bottom-sheet" id="post-share-sheet-{{ post.id }}">
+                    <div class="drag-pill"></div>
+                    <div class="sheet-header">
+                        Send Post
+                        <i class='bx bx-x close-btn' onclick="togglePostShare({{ post.id }})"></i>
+                    </div>
+                    <div class="share-list">
+                        {% for thread in user_threads %}
+                        <div class="thread-item" style="display:flex; align-items:center; justify-content:space-between; padding:12px 0; border-bottom:1px solid #363636;">
+                            <div style="display:flex; align-items:center; gap:12px;">
+                                {% for p in thread.participants.all %}
+                                    {% if p != request.user %}
+                                        {% if p.profile.profile_image %}
+                                            <img src="{{ p.profile.profile_image.url }}" style="width:40px; height:40px; border-radius:50%; object-fit:cover;">
+                                        {% else %}
+                                            <img src="https://ui-avatars.com/api/?name={{ p.username }}&background=444&color=fff" style="width:40px; height:40px; border-radius:50%; object-fit:cover;">
+                                        {% endif %}
+                                        <span style="font-weight:600; font-size:14px; color: #fff;">{{ p.username }}</span>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                            <button class="send-btn" id="post-send-btn-{{ post.id }}-{{ thread.id }}" onclick="sharePost({{ post.id }}, {{ thread.id }})" style="background:#0095f6; color:#fff; border:none; padding:6px 16px; border-radius:6px; font-weight:600; cursor:pointer;">Send</button>
+                        </div>
+                        {% empty %}
+                        <div style="color: #888; text-align: center; padding-top:20px;">No active chats to share with.</div>
+                        {% endfor %}
+                    </div>
+                </div>
+
             </div>
             {% empty %}
             <div style="text-align:center; padding: 50px; color:gray;">
@@ -85,137 +222,136 @@
             </div>
             {% endfor %}
         </div>
-
-        <div class="right-panel">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-                <span style="color:gray; font-weight:600;">Suggestions for you</span>
-            </div>
-
-            {% for suggest_user in users %}
-            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:15px;">
-                <a href="{% url 'user_profile' suggest_user.id %}" style="text-decoration:none; color:inherit; display:flex; align-items:center; gap:10px;">
-                    {% if suggest_user.profile.profile_image %}
-                        <img src="{{ suggest_user.profile.profile_image.url }}" style="width:40px; height:40px; border-radius:50%; object-fit:cover;">
-                    {% endif %}
-                    <div>
-                        <div style="font-weight:600; font-size:14px;">{{ suggest_user.username }}</div>
-                        <div style="color:gray; font-size:12px;">Suggested for you</div>
-                    </div>
-                </a>
-
-                <form action="{% url 'follow_user' suggest_user.id %}" method="POST" class="ajax-follow-form" style="margin: 0;">
-                    {% csrf_token %}
-                    {% if suggest_user.is_following_you %}
-                        <button type="submit" class="feed-follow-btn" style="background:none; border:none; color:#0095f6; font-weight:600; font-size:12px; cursor:pointer; padding:0;">Follow Back</button>
-                    {% else %}
-                        <button type="submit" class="feed-follow-btn" style="background:none; border:none; color:#0095f6; font-weight:600; font-size:12px; cursor:pointer; padding:0;">Follow</button>
-                    {% endif %}
-                </form>
-
-            </div>
-            {% endfor %}
-        </div>
     </div>
 </div>
 
-<style>
-  .search-dropdown {
-    position: absolute;
-    top: 50px; /* Adjust this slightly if it overlaps your search box */
-    left: 0;
-    width: 350px; /* Matches standard search box width */
-    min-height: 250px;
-    background-color: #000;
-    border: 1px solid #333;
-    border-radius: 8px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.8);
-    padding: 15px;
-    display: none; /* Hidden by default */
-    z-index: 1000;
-  }
-
-  .search-dropdown.show {
-    display: block;
-  }
-
-  .search-dropdown-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 15px;
-    border-bottom: 1px solid #333;
-    padding-bottom: 10px;
-  }
-
-  .search-dropdown-header h4 {
-    color: #fff;
-    margin: 0;
-    font-size: 16px;
-  }
-
-  .search-dropdown-header .clear-btn {
-    color: #0095f6;
-    font-size: 14px;
-    text-decoration: none;
-  }
-
-  .search-dropdown-content .no-recent {
-    color: #888;
-    text-align: center;
-    margin-top: 30px;
-    font-size: 14px;
-  }
-</style>
-
 <script>
-  document.addEventListener("DOMContentLoaded", function() {
-    // --- DROPDOWN LOGIC ---
-    const searchInput = document.getElementById("topSearchInput");
-    const searchDropdown = document.getElementById("searchDropdown");
+  // This grabs the CSRF token we added above so our fetch requests are accepted by Django!
+  const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]') ? document.querySelector('[name=csrfmiddlewaretoken]').value : '';
 
-    if (searchInput && searchDropdown) {
-        searchInput.addEventListener("focus", function() {
-            searchDropdown.classList.add("show");
-        });
+  // --- UI CONTROLS (Close Bottom Sheets) ---
+  const overlay = document.getElementById('feedOverlay');
+  function closeAllSheets() {
+      document.querySelectorAll('.bottom-sheet').forEach(sheet => sheet.classList.remove('active'));
+      overlay.classList.remove('active');
+  }
 
-        document.addEventListener("click", function(e) {
-            const isClickInside = searchInput.contains(e.target) || searchDropdown.contains(e.target);
-            if (!isClickInside) {
-                searchDropdown.classList.remove("show");
-            }
-        });
-    }
+  // --- LIKE POST FUNCTION ---
+  function likePost(postId) {
+      const icon = document.getElementById(`post-like-icon-${postId}`);
+      icon.style.transform = "scale(1.2)";
+      setTimeout(() => icon.style.transform = "scale(1)", 150);
 
-    // --- SILENT AJAX FOLLOW IN FEED ---
-    document.addEventListener('submit', (e) => {
-        if (e.target.classList.contains('ajax-follow-form')) {
-            e.preventDefault(); 
-            
-            const form = e.target;
-            const button = form.querySelector('button');
+      fetch(`/api/posts/${postId}/like/`, {  
+          method: 'POST',
+          headers: { 'X-CSRFToken': csrftoken, 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+      })
+      .then(res => res.json())
+      .then(data => {
+          if(data.status === 'success') {
+              const countElement = document.getElementById(`post-like-count-${postId}`);
+              if (countElement) countElement.innerText = `${data.like_count} likes`;
+              if (data.liked) {
+                  icon.classList.remove('bx-heart'); icon.classList.add('bxs-heart'); icon.style.color = '#ff3040';
+              } else {
+                  icon.classList.remove('bxs-heart'); icon.classList.add('bx-heart'); icon.style.color = '';
+              }
+          }
+      }).catch(err => console.error("Ensure /api/posts/<id>/like/ is set up in views.py!"));
+  }
 
-            fetch(form.action, {
-                method: 'POST',
-                body: new FormData(form),
-                headers: { 'X-Requested-With': 'XMLHttpRequest' }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'followed') {
-                    // Turn it gray and change to "Following"
-                    button.innerText = 'Following';
-                    button.style.color = '#f8fafc'; // White/Gray text
-                    form.action = form.action.replace('follow_user', 'unfollow_user');
-                    
-                } else if (data.status === 'unfollowed') {
-                    // Revert back to blue "Follow"
-                    button.innerText = 'Follow';
-                    button.style.color = '#0095f6'; // Blue text
-                    form.action = form.action.replace('unfollow_user', 'follow_user');
-                }
-            });
-        }
-    });
-  });
+  // --- SAVE POST FUNCTION ---
+  function savePost(postId) {
+      const icon = document.getElementById(`post-save-icon-${postId}`);
+      icon.style.transform = "scale(1.2)";
+      setTimeout(() => icon.style.transform = "scale(1)", 150);
+
+      fetch(`/api/posts/${postId}/save/`, {
+          method: 'POST',
+          headers: { 'X-CSRFToken': csrftoken, 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+      })
+      .then(res => res.json())
+      .then(data => {
+          if(data.status === 'success') {
+              console.log(`Successfully saved status for post ${postId}:`, data.saved); // <-- Debugging Log
+              if (data.saved) {
+                  icon.classList.remove('bx-bookmark'); icon.classList.add('bxs-bookmark');
+              } else {
+                  icon.classList.remove('bxs-bookmark'); icon.classList.add('bx-bookmark');
+              }
+          } else {
+              console.error("Server returned an error status:", data);
+          }
+      }).catch(err => console.error("Fetch request failed for Save Post. Check URLs in urls.py!", err));
+  }
+
+  // --- COMMENTS MODAL LOGIC ---
+  function togglePostComments(postId) {
+      const sheet = document.getElementById(`post-comments-sheet-${postId}`);
+      const isActive = sheet.classList.contains('active');
+      closeAllSheets(); 
+      if (!isActive) { 
+          sheet.classList.add('active'); 
+          overlay.classList.add('active');
+      }
+  }
+
+  function submitPostComment(postId) {
+      const inputField = document.getElementById(`post-comment-input-${postId}`);
+      const text = inputField.value;
+      if (text.trim() === '') return;
+
+      fetch(`/api/posts/${postId}/comment/`, {
+          method: 'POST',
+          headers: { 'X-CSRFToken': csrftoken, 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+          body: JSON.stringify({ text: text })
+      })
+      .then(res => res.json())
+      .then(data => {
+          if(data.status === 'success') {
+              inputField.value = '';
+              const list = document.getElementById(`post-comments-list-${postId}`);
+              if(list.innerText.includes("No comments yet")) { list.innerHTML = ''; }
+              list.innerHTML += `
+                  <div class="comment-item">
+                      <div class="comment-avatar"><img src="https://ui-avatars.com/api/?name=${data.username}&background=444&color=fff" style="width:100%; height:100%; border-radius:50%;"></div>
+                      <div class="comment-text"><strong>${data.username}</strong> ${data.text}</div>
+                  </div>
+              `;
+              list.scrollTop = list.scrollHeight;
+          }
+      }).catch(err => console.error("Ensure /api/posts/<id>/comment/ is set up in views.py!"));
+  }
+
+  // --- SHARE MODAL LOGIC ---
+  function togglePostShare(postId) {
+      const sheet = document.getElementById(`post-share-sheet-${postId}`);
+      const isActive = sheet.classList.contains('active');
+      closeAllSheets(); 
+      if (!isActive) { 
+          sheet.classList.add('active'); 
+          overlay.classList.add('active');
+      }
+  }
+
+  function sharePost(postId, threadId) {
+      const btn = document.getElementById(`post-send-btn-${postId}-${threadId}`);
+      btn.innerText = "Sent"; btn.disabled = true;
+
+      fetch(`/api/posts/${postId}/share/${threadId}/`, {
+          method: 'POST',
+          headers: { 'X-CSRFToken': csrftoken, 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+      })
+      .then(res => res.json())
+      .then(data => {
+          if(data.status === 'success') {
+              btn.style.backgroundColor = "transparent"; btn.style.color = "#888"; btn.style.border = "1px solid #555";
+              setTimeout(() => {
+                  togglePostShare(postId); btn.innerText = "Send";
+                  btn.style.backgroundColor = "#0095f6"; btn.style.color = "white"; btn.style.border = "none"; btn.disabled = false;
+              }, 1000);
+          }
+      }).catch(err => console.error("Ensure /api/posts/<id>/share/<threadId>/ is set up in views.py!"));
+  }
 </script>
 {% endblock %}

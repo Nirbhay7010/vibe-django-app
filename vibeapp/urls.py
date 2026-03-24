@@ -69,6 +69,11 @@ urlpatterns = [
     path('api/reels/<int:reel_id>/share/<int:thread_id>/', views.share_reel_to_chat, name='share_reel_to_chat'),
     path('api/reels/<int:reel_id>/save/', views.save_reel, name='save_reel'),
     path('api/reels/<int:reel_id>/not-interested/', views.not_interested_reel, name='not_interested_reel'),
+    
+    path('api/posts/<int:post_id>/like/', views.like_post, name='like_post'),
+    path('api/posts/<int:post_id>/save/', views.save_post, name='save_post'),
+    path('api/posts/<int:post_id>/comment/', views.comment_post, name='comment_post'),
+    path('api/posts/<int:post_id>/share/<int:thread_id>/', views.share_post, name='share_post'),
 ]
 
 if settings.DEBUG:
