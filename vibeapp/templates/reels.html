@@ -13,24 +13,23 @@
             padding: 0;
             box-sizing: border-box;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            -webkit-tap-highlight-color: transparent; /* Removes blue tap highlight on mobile */
+            -webkit-tap-highlight-color: transparent; 
         }
 
         body {
             background-color: #000;
             color: #fff;
             overflow: hidden;
-            height: 100dvh; /* Uses actual mobile screen height */
+            height: 100dvh; 
         }
 
         .reels-container {
-            height: 100dvh; /* Dynamic viewport height fixes the bottom cutoff */
+            height: 100dvh; 
             width: 100%;
             max-width: 450px;
             margin: 0 auto;
             overflow-y: scroll;
             scroll-snap-type: y mandatory;
-            scroll-behavior: smooth;
             position: relative;
             background: #000;
         }
@@ -44,9 +43,10 @@
         }
 
         .reel-item {
-            height: 100dvh; /* Dynamic viewport height */
+            height: 100dvh; 
             width: 100%;
             scroll-snap-align: start;
+            scroll-snap-stop: normal;
             position: relative;
             background: #000;
             display: flex;
@@ -57,8 +57,8 @@
         .reel-video {
             width: 100%;
             height: 100%;
-            object-fit: contain; /* Changed to contain to fix the zooming/cropping */
-            background-color: #000; /* Ensures empty space is black */
+            object-fit: contain; 
+            background-color: #000; 
             cursor: pointer;
         }
 
@@ -75,7 +75,6 @@
 
         .reel-info {
             position: absolute;
-            /* Added env() to respect iPhone home indicator area safely */
             bottom: max(25px, env(safe-area-inset-bottom)); 
             left: 15px;
             z-index: 10;
@@ -91,7 +90,6 @@
             gap: 10px;
         }
 
-        /* Styling for the clickable profile link */
         .profile-link {
             display: flex;
             align-items: center;
@@ -124,30 +122,6 @@
             font-weight: 600;
             cursor: pointer;
             transition: all 0.2s;
-        }
-
-        /* Video Call Button Styles */
-        .call-btn {
-            background: rgba(255, 255, 255, 0.15);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            color: #fff;
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: all 0.2s;
-            backdrop-filter: blur(4px);
-        }
-
-        .call-btn:hover {
-            background: rgba(255, 255, 255, 0.3);
-        }
-
-        .call-btn i {
-            font-size: 16px;
         }
 
         .caption {
@@ -280,8 +254,6 @@
         }
         .top-nav h2 { font-size: 20px; text-shadow: 1px 1px 4px rgba(0,0,0,0.8); }
         .back-nav { color: white; font-size: 28px; text-decoration: none; pointer-events: auto; text-shadow: 1px 1px 4px rgba(0,0,0,0.8); }
-        
-        .option-item:hover { background: #333; }
     </style>
 </head>
 <body>
@@ -316,10 +288,11 @@
                 </a>
                 
                 {% if request.user != reel.user %}
-                    <button class="follow-btn" onclick="toggleFollow({{ reel.user.id }}, this)">Follow</button>
-                    <button class="call-btn" onclick="startVideoCall({{ reel.user.id }})" title="Video Call">
-                        <i class='bx bx-video'></i>
-                    </button>
+                    {% if request.user in reel.user.followers.all %}
+                        <button class="follow-btn" style="background: rgba(255,255,255,0.2); border: none;" onclick="toggleFollow({{ reel.user.id }}, this)">Following</button>
+                    {% else %}
+                        <button class="follow-btn" onclick="toggleFollow({{ reel.user.id }}, this)">Follow</button>
+                    {% endif %}
                 {% endif %}
             </div>
             
@@ -447,7 +420,11 @@
 </div>
 
 <script>
-    const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    function getCsrfToken() {
+        const el = document.querySelector('[name=csrfmiddlewaretoken]');
+        return el ? el.value : '';
+    }
+
     const reelsContainer = document.querySelector('.reels-container');
 
     function closeAllSheets() {
@@ -484,7 +461,7 @@
         fetch(`/follow/${userId}/`, { 
             method: 'POST',
             headers: { 
-                'X-CSRFToken': csrftoken, 
+                'X-CSRFToken': getCsrfToken(), 
                 'Content-Type': 'application/json',
                 'X-Requested-With': 'XMLHttpRequest' 
             }
@@ -512,7 +489,7 @@
     function likeReel(reelId) {
         fetch(`/api/reels/${reelId}/like/`, {
             method: 'POST',
-            headers: { 'X-CSRFToken': csrftoken, 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+            headers: { 'X-CSRFToken': getCsrfToken(), 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
         })
         .then(res => res.json())
         .then(data => {
@@ -542,7 +519,7 @@
 
         fetch(`/api/reels/${reelId}/comment/`, {
             method: 'POST',
-            headers: { 'X-CSRFToken': csrftoken, 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+            headers: { 'X-CSRFToken': getCsrfToken(), 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
             body: JSON.stringify({ text: text })
         })
         .then(res => res.json())
@@ -576,7 +553,7 @@
 
         fetch(`/api/reels/${reelId}/share/${threadId}/`, {
             method: 'POST',
-            headers: { 'X-CSRFToken': csrftoken, 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+            headers: { 'X-CSRFToken': getCsrfToken(), 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
         })
         .then(res => res.json())
         .then(data => {
@@ -600,7 +577,7 @@
     function saveReel(reelId, btnElement) {
         fetch(`/api/reels/${reelId}/save/`, {
             method: 'POST',
-            headers: { 'X-CSRFToken': csrftoken, 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+            headers: { 'X-CSRFToken': getCsrfToken(), 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
         })
         .then(res => res.json())
         .then(data => {
@@ -622,7 +599,7 @@
     function markNotInterested(reelId) {
         fetch(`/api/reels/${reelId}/not-interested/`, {
             method: 'POST',
-            headers: { 'X-CSRFToken': csrftoken, 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+            headers: { 'X-CSRFToken': getCsrfToken(), 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
         })
         .then(res => res.json())
         .then(data => {
@@ -646,32 +623,6 @@
                     window.scrollBy({ top: 10, behavior: 'smooth' }); 
                 }, 400);
             }
-        });
-    }
-
-    function startVideoCall(userId) {
-        fetch(`/api/chat/start/${userId}/`, {
-            method: 'POST',
-            headers: { 
-                'X-CSRFToken': csrftoken, 
-                'Content-Type': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest' 
-            }
-        })
-        .then(res => {
-            if (!res.ok) throw new Error("Network response was not ok");
-            return res.json();
-        })
-        .then(data => {
-            if(data.thread_id) {
-                window.location.href = `/direct/call/${data.thread_id}/`;
-            } else {
-                alert("Could not start call. Please try again.");
-            }
-        })
-        .catch(err => {
-            console.error("Call initialization error:", err);
-            alert("Error connecting to call. Check your connection.");
         });
     }
 </script>

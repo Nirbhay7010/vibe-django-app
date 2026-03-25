@@ -27,16 +27,14 @@ urlpatterns = [
     # ==========================
     # FOLLOW SYSTEM
     # ==========================
-    path('follow/<int:user_id>/', views.follow_user, name='follow_user'),
+    # FIXED: This now points to toggle_follow for the AJAX JS to work!
+    path('follow/<int:user_id>/', views.toggle_follow, name='toggle_follow'),
     path('unfollow/<int:user_id>/', views.unfollow_user, name='unfollow_user'),
     path('accept/<int:user_id>/', views.accept_request, name='accept_request'),
     path('decline/<int:user_id>/', views.decline_request, name='decline_request'),
     path('remove_follower/<int:user_id>/', views.remove_follower, name='remove_follower'),
     path('profile/<int:user_id>/followers/', views.followers_list, name='followers_list'),
     path('profile/<int:user_id>/following/', views.following_list, name='following_list'),
-    
-    # AJAX Toggle Follow Endpoint
-    path('api/follow/toggle/<int:user_id>/', views.toggle_follow, name='toggle_follow'),
 
     # ==========================
     # SEARCH & NOTIFICATIONS
@@ -49,7 +47,7 @@ urlpatterns = [
     # CHAT & DIRECT MESSAGES
     # ==========================
     path('direct/inbox/', views.inbox_view, name='inbox'),
-    path('direct/call/<int:thread_id>/', views.video_call_view, name='video_call_view'), # Added Video Call route
+    path('direct/call/<int:thread_id>/', views.video_call_view, name='video_call_view'), 
     
     # Chat API Endpoints
     path('api/chat/threads/', ThreadListView.as_view(), name='thread-list'),
@@ -70,10 +68,14 @@ urlpatterns = [
     path('api/reels/<int:reel_id>/save/', views.save_reel, name='save_reel'),
     path('api/reels/<int:reel_id>/not-interested/', views.not_interested_reel, name='not_interested_reel'),
     
+    # ==========================
+    # POST APIs & SUGGESTIONS
+    # ==========================
     path('api/posts/<int:post_id>/like/', views.like_post, name='like_post'),
     path('api/posts/<int:post_id>/save/', views.save_post, name='save_post'),
     path('api/posts/<int:post_id>/comment/', views.comment_post, name='comment_post'),
     path('api/posts/<int:post_id>/share/<int:thread_id>/', views.share_post, name='share_post'),
+    path('suggestions/', views.suggested_users_view, name='suggested_users'),
 ]
 
 if settings.DEBUG:

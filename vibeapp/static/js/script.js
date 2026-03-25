@@ -1,34 +1,6 @@
 document.addEventListener("DOMContentLoaded", () => {
 
     /* =========================
-       LIKE BUTTON
-    ========================== */
-    document.querySelectorAll(".like-btn").forEach(btn => {
-        const heart = btn.querySelector(".heart");
-        const countEl = btn.querySelector(".like-count");
-        if (!heart || !countEl) return;
-
-        btn.addEventListener("click", () => {
-            const liked = btn.dataset.liked === "true";
-            const count = parseInt(countEl.textContent) || 0;
-
-            heart.textContent = liked ? "🤍" : "❤️";
-            countEl.textContent = liked ? count - 1 : count + 1;
-            btn.dataset.liked = (!liked).toString();
-        });
-    });
-
-    /* =========================
-       FOLLOW BUTTON
-    ========================== */
-    document.querySelectorAll(".user button").forEach(btn => {
-        btn.addEventListener("click", () => {
-            const following = btn.classList.toggle("following");
-            btn.textContent = following ? "Following" : "Follow";
-        });
-    });
-
-    /* =========================
        SIDEBAR ACTIVE MENU
     ========================== */
     document.querySelectorAll(".menu-link").forEach(link => {
@@ -181,6 +153,4 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         });
     }
-    
-
 });
