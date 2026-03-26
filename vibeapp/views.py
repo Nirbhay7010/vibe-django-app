@@ -206,7 +206,6 @@ def toggle_follow(request, user_id):
 
 @login_required(login_url='login')
 def follow_user(request, user_id):
-    # This is kept for non-AJAX fallbacks
     target_user = get_object_or_404(User, id=user_id)
     if not Follow.objects.filter(follower=request.user, following=target_user).exists():
         is_public = getattr(target_user.profile, 'is_public', True)
@@ -265,12 +264,10 @@ def create_post(request):
             image_file = None
             caption = ""
 
-            # 1. Check if sent as standard multipart/form-data (File object)
             if request.FILES:
                 image_file = request.FILES.get("image") or request.FILES.get("file")
                 caption = request.POST.get("caption", "")
 
-            # 2. Check if sent as JSON string (Base64 from Cropper.js)
             elif request.body:
                 try:
                     data = json.loads(request.body)
@@ -286,7 +283,6 @@ def create_post(request):
                 except json.JSONDecodeError:
                     pass 
 
-            # 3. Check if sent as standard POST data (Base64 text)
             if not image_file and request.POST:
                 image_data = request.POST.get("image") or request.POST.get("image_data")
                 caption = request.POST.get("caption", "")
@@ -297,7 +293,6 @@ def create_post(request):
                     file_name = f"post_{uuid.uuid4()}.{ext}"
                     image_file = ContentFile(image_content, name=file_name)
 
-            # Safety trigger if no image was found
             if not image_file:
                 return JsonResponse({"status": "error", "message": "No valid image file or data provided. Check frontend payload."}, status=400)
 
@@ -375,6 +370,13 @@ def delete_post(request, post_id):
         messages.success(request, "Post deleted successfully.")
     return redirect('profile')
 
+@login_required
+def unblock_user(request, user_id):
+    if request.method == "POST":
+        user_to_unblock = get_object_or_404(User, id=user_id)
+        request.user.profile.blocked_users.remove(user_to_unblock)
+        return JsonResponse({"status": "success"})
+    return JsonResponse({"status": "error"}, status=400)
 
 # ==========================
 # FEED POST ACTIONS
@@ -390,6 +392,31 @@ def like_post(request, post_id):
             else:
                 post.likes.add(request.user)
                 liked = True
+                
+                # Check user settings before sending notification
+                if post.user != request.user and post.user.profile.notif_likes_comments:
+                    notif = Notification.objects.create(
+                        sender=request.user, 
+                        receiver=post.user, 
+                        notification_type='like_post' 
+                    )
+                    
+                    channel_layer = get_channel_layer()
+                    avatar_url = request.user.profile.profile_image.url if hasattr(request.user, 'profile') and request.user.profile.profile_image else f"https://ui-avatars.com/api/?name={request.user.username}&background=444&color=fff"
+                    
+                    async_to_sync(channel_layer.group_send)(
+                        f"notifs_{post.user.id}", 
+                        {
+                            "type": "send_notification",
+                            "data": {
+                                "type": "like_post",
+                                "sender": request.user.username,
+                                "avatar": avatar_url,
+                                "notif_id": notif.id
+                            }
+                        }
+                    )
+                    
             return JsonResponse({'status': 'success', 'liked': liked, 'like_count': post.likes.count()})
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
@@ -423,6 +450,32 @@ def comment_post(request, post_id):
             if text:
                 post = get_object_or_404(Post, id=post_id)
                 comment = Comment.objects.create(post=post, user=request.user, text=text)
+                
+                # Check user settings before sending notification
+                if post.user != request.user and post.user.profile.notif_likes_comments:
+                    notif = Notification.objects.create(
+                        sender=request.user, 
+                        receiver=post.user, 
+                        notification_type='comment_post'
+                    )
+                    
+                    channel_layer = get_channel_layer()
+                    avatar_url = request.user.profile.profile_image.url if hasattr(request.user, 'profile') and request.user.profile.profile_image else f"https://ui-avatars.com/api/?name={request.user.username}&background=444&color=fff"
+                    
+                    async_to_sync(channel_layer.group_send)(
+                        f"notifs_{post.user.id}",
+                        {
+                            "type": "send_notification",
+                            "data": {
+                                "type": "comment_post",
+                                "sender": request.user.username,
+                                "text": text,
+                                "avatar": avatar_url,
+                                "notif_id": notif.id
+                            }
+                        }
+                    )
+
                 return JsonResponse({
                     'status': 'success', 
                     'username': request.user.username,
@@ -444,10 +497,40 @@ def share_post(request, post_id, thread_id):
             thread = get_object_or_404(Thread, id=thread_id)
             
             if request.user in thread.participants.all():
+                content_text = f"Check out this post by @{post.user.username}!"
+                
                 try:
-                    Message.objects.create(thread=thread, sender=request.user, content="Check out this post!", shared_post=post)
+                    msg = Message.objects.create(
+                        thread=thread, 
+                        sender=request.user, 
+                        content=content_text, 
+                        shared_post=post,
+                        image=post.image  
+                    )
                 except TypeError:
-                    Message.objects.create(thread=thread, sender=request.user, content=f"Check out this post by @{post.user.username}!")
+                    msg = Message.objects.create(
+                        thread=thread, 
+                        sender=request.user, 
+                        content=content_text,
+                        image=post.image  
+                    )
+
+                try:
+                    channel_layer = get_channel_layer()
+                    async_to_sync(channel_layer.group_send)(
+                        f'chat_{thread_id}',
+                        {
+                            'type': 'chat_message', 
+                            'message': msg.content,
+                            'image_url': msg.image.url if msg.image else '', 
+                            'sender_id': request.user.id,
+                            'sender_username': request.user.username,
+                            'timestamp': msg.timestamp.strftime('%Y-%m-%d %H:%M')
+                        }
+                    )
+                except Exception as e:
+                    print(f"WebSocket error: {e}")
+
                 return JsonResponse({'status': 'success', 'message': 'Post sent!'})
             else:
                 return JsonResponse({'status': 'error', 'message': 'Not a participant in this thread'}, status=403)
@@ -611,16 +694,50 @@ def add_reel_comment(request, reel_id):
 @login_required
 def share_reel_to_chat(request, reel_id, thread_id):
     if request.method == 'POST':
-        reel = get_object_or_404(Reel, id=reel_id)
-        thread = get_object_or_404(Thread, id=thread_id)
-        
-        if request.user in thread.participants.all():
-            try:
-                Message.objects.create(thread=thread, sender=request.user, content="Check out this reel!", shared_reel=reel)
-            except TypeError:
-                Message.objects.create(thread=thread, sender=request.user, content=f"Check out this reel by @{reel.user.username}!")
-            return JsonResponse({'status': 'success', 'message': 'Reel sent!'})
-        return JsonResponse({'status': 'error', 'message': 'Not a participant'}, status=403)
+        try:
+            reel = get_object_or_404(Reel, id=reel_id)
+            thread = get_object_or_404(Thread, id=thread_id)
+            
+            if request.user in thread.participants.all():
+                content_text = f"Check out this reel by @{reel.user.username}!"
+                
+                try:
+                    msg = Message.objects.create(
+                        thread=thread, 
+                        sender=request.user, 
+                        content=content_text, 
+                        shared_reel=reel
+                    )
+                except TypeError:
+                    msg = Message.objects.create(
+                        thread=thread, 
+                        sender=request.user, 
+                        content=content_text
+                    )
+                
+                try:
+                    channel_layer = get_channel_layer()
+                    async_to_sync(channel_layer.group_send)(
+                        f'chat_{thread_id}',
+                        {
+                            'type': 'chat_message', 
+                            'message': msg.content,
+                            'image_url': '', 
+                            'video_url': reel.video.url if reel.video else '',
+                            'sender_id': request.user.id,
+                            'sender_username': request.user.username,
+                            'timestamp': msg.timestamp.strftime('%Y-%m-%d %H:%M')
+                        }
+                    )
+                except Exception as e:
+                    print(f"WebSocket error: {e}")
+
+                return JsonResponse({'status': 'success', 'message': 'Reel sent!'})
+            else:
+                return JsonResponse({'status': 'error', 'message': 'Not a participant'}, status=403)
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+            
     return JsonResponse({'status': 'error', 'message': 'Invalid request'})
 
 @login_required

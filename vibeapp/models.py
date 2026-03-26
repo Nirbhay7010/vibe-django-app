@@ -14,6 +14,14 @@ class Profile(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     is_public = models.BooleanField(default=True)
 
+    # --- Notification Preferences ---
+    notif_likes_comments = models.BooleanField(default=True)
+    notif_followers = models.BooleanField(default=True)
+    notif_messages = models.BooleanField(default=True)
+
+    # --- Blocked Users ---
+    blocked_users = models.ManyToManyField(User, related_name='blocked_by', blank=True)
+
     def __str__(self):
         return self.user.username
 
@@ -63,7 +71,8 @@ class Post(models.Model):
     def __str__(self):
         return f"Post by {self.user.username} at {self.created_at.strftime('%Y-%m-%d')}"
 
-# --- POST COMMENT MODEL (NEW) ---
+
+# --- POST COMMENT MODEL ---
 class Comment(models.Model):
     post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='comments')
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -103,6 +112,8 @@ class Notification(models.Model):
     NOTIFICATION_TYPES = (
         ('like', 'Like'),
         ('comment', 'Comment'),
+        ('like_post', 'Like Post'),           
+        ('comment_post', 'Comment Post'),     
         ('follow', 'Follow'),           
         ('follow_request', 'Request'),  
         ('accept', 'Accepted Request'), 
@@ -139,8 +150,6 @@ class Message(models.Model):
     image = models.ImageField(upload_to='chat_images/', blank=True, null=True)
     
     shared_reel = models.ForeignKey(Reel, on_delete=models.SET_NULL, null=True, blank=True, related_name='shared_in_messages')
-    
-    # New field to allow sharing Feed Posts in chat
     shared_post = models.ForeignKey(Post, on_delete=models.SET_NULL, null=True, blank=True, related_name='shared_in_messages')
     
     timestamp = models.DateTimeField(auto_now_add=True)
@@ -157,13 +166,14 @@ class Message(models.Model):
 @receiver(post_save, sender=Follow)
 def follow_notification(sender, instance, created, **kwargs):
     if created:
-        if instance.status == 'accepted':
+        # Check settings before sending follow notifications
+        if instance.status == 'accepted' and instance.following.profile.notif_followers:
             Notification.objects.create(
                 sender=instance.follower,
                 receiver=instance.following,
                 notification_type='follow'
             )
-        elif instance.status == 'pending':
+        elif instance.status == 'pending' and instance.following.profile.notif_followers:
             Notification.objects.create(
                 sender=instance.follower,
                 receiver=instance.following,
@@ -177,7 +187,7 @@ def follow_notification(sender, instance, created, **kwargs):
                 notification_type='follow_request'
             ).delete()
             
-            if not Notification.objects.filter(sender=instance.following, receiver=instance.follower, notification_type='accept').exists():
+            if instance.follower.profile.notif_followers and not Notification.objects.filter(sender=instance.following, receiver=instance.follower, notification_type='accept').exists():
                 Notification.objects.create(
                     sender=instance.following,
                     receiver=instance.follower,

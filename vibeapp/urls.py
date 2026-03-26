@@ -29,6 +29,10 @@ urlpatterns = [
     # ==========================
     # FIXED: This now points to toggle_follow for the AJAX JS to work!
     path('follow/<int:user_id>/', views.toggle_follow, name='toggle_follow'),
+    
+    # ADDED: This fixes the NoReverseMatch error on your profile page
+    path('follow_user/<int:user_id>/', views.follow_user, name='follow_user'),
+    
     path('unfollow/<int:user_id>/', views.unfollow_user, name='unfollow_user'),
     path('accept/<int:user_id>/', views.accept_request, name='accept_request'),
     path('decline/<int:user_id>/', views.decline_request, name='decline_request'),
@@ -76,6 +80,7 @@ urlpatterns = [
     path('api/posts/<int:post_id>/comment/', views.comment_post, name='comment_post'),
     path('api/posts/<int:post_id>/share/<int:thread_id>/', views.share_post, name='share_post'),
     path('suggestions/', views.suggested_users_view, name='suggested_users'),
+    path('unblock/<int:user_id>/', views.unblock_user, name='unblock_user'),
 ]
 
 if settings.DEBUG:

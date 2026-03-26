@@ -3,7 +3,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Vibe | Video Call</title>
     <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
     <style>
@@ -17,7 +17,8 @@
         body {
             background-color: #111;
             color: #fff;
-            height: 100vh;
+            /* FIXED: Use dvh to prevent bottom controls from cutting off on mobile */
+            height: 100dvh;
             width: 100vw;
             overflow: hidden;
             display: flex;
@@ -41,7 +42,7 @@
         /* Local Video (Floating Picture-in-Picture) */
         #local-video {
             position: absolute;
-            top: 20px;
+            top: env(safe-area-inset-top, 20px); /* Respect iOS notch */
             right: 20px;
             width: 120px;
             height: 180px;
@@ -56,7 +57,7 @@
         
         .no-cam-placeholder {
             position: absolute;
-            top: 20px;
+            top: env(safe-area-inset-top, 20px);
             right: 20px;
             width: 120px;
             height: 180px;
@@ -73,7 +74,7 @@
         /* Top Overlay Info */
         .call-header {
             position: absolute;
-            top: 30px;
+            top: env(safe-area-inset-top, 30px); /* Respect iOS notch */
             left: 20px;
             z-index: 10;
             text-shadow: 1px 1px 4px rgba(0,0,0,0.8);
@@ -85,7 +86,8 @@
         /* Bottom Control Bar */
         .controls {
             position: absolute;
-            bottom: 40px;
+            /* FIXED: Increase bottom margin and use env() for iPhone home bar */
+            bottom: calc(40px + env(safe-area-inset-bottom, 0px));
             left: 50%;
             transform: translateX(-50%);
             z-index: 10;
@@ -125,6 +127,31 @@
         }
 
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Mobile Adjustments */
+        @media (max-width: 600px) {
+            .call-header h2 { font-size: 18px; }
+            .call-header p { font-size: 12px; }
+            
+            /* Make PIP window slightly smaller on phones */
+            #local-video, .no-cam-placeholder {
+                width: 100px;
+                height: 150px;
+                top: env(safe-area-inset-top, 15px);
+                right: 15px;
+            }
+
+            .controls {
+                gap: 15px;
+                padding: 12px 20px;
+                /* Push controls up slightly more on very small screens */
+                bottom: calc(30px + env(safe-area-inset-bottom, 10px));
+            }
+            
+            .control-btn {
+                width: 45px; height: 45px; font-size: 22px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -174,7 +201,6 @@
         let peerConnection;
         let signalingSocket;
         
-        // NEW: Queue to hold ICE candidates if they arrive too early
         let iceCandidatesQueue = []; 
 
         const iceConfiguration = {
@@ -232,7 +258,6 @@
             signalingSocket.onmessage = async (e) => {
                 const data = JSON.parse(e.data);
 
-                // Ignore our own messages
                 if (data.username === username) return;
 
                 try {
@@ -253,7 +278,6 @@
                         await peerConnection.setLocalDescription(answer);
                         signalingSocket.send(JSON.stringify({ 'type': 'answer', 'answer': answer, 'username': username }));
 
-                        // FIX: Process any ICE candidates that were queued while waiting for the offer
                         while(iceCandidatesQueue.length) {
                             await peerConnection.addIceCandidate(iceCandidatesQueue.shift());
                         }
@@ -262,7 +286,6 @@
                     if (data.type === 'answer') {
                         await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
                         
-                        // FIX: Process any ICE candidates that were queued while waiting for the answer
                         while(iceCandidatesQueue.length) {
                             await peerConnection.addIceCandidate(iceCandidatesQueue.shift());
                         }
@@ -271,7 +294,6 @@
                     if (data.type === 'ice-candidate') {
                         const candidate = new RTCIceCandidate(data.candidate);
                         
-                        // FIX: If the remote description isn't set yet, queue the candidate instead of crashing!
                         if (peerConnection && peerConnection.remoteDescription) {
                             await peerConnection.addIceCandidate(candidate);
                         } else {
@@ -288,7 +310,7 @@
                             peerConnection.close();
                             peerConnection = null;
                         }
-                        iceCandidatesQueue = []; // Clear queue
+                        iceCandidatesQueue = []; 
                     }
                 } catch (error) {
                     console.error("Error in signaling process:", error);
@@ -297,7 +319,6 @@
         }
 
         function createPeerConnection() {
-            // FIX: If a connection already exists, don't overwrite it!
             if (peerConnection) return; 
 
             peerConnection = new RTCPeerConnection(iceConfiguration);
@@ -307,7 +328,7 @@
             });
 
             peerConnection.ontrack = (event) => {
-                console.log("Stream received!"); // Helpful for debugging
+                console.log("Stream received!"); 
                 remoteVideo.srcObject = event.streams[0];
                 statusOverlay.style.opacity = '0'; 
                 setTimeout(() => statusOverlay.style.display = 'none', 500);

@@ -165,6 +165,25 @@
     .comment-input-area button { background: none; border: none; color: #0095f6; font-weight: 600; font-size: 14px; cursor: pointer; }
     .feed-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 9998; backdrop-filter: blur(2px); }
     .feed-overlay.active { display: block; }
+
+    /* --- ✨ NEW MODAL CSS ✨ --- */
+    .modal-overlay {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0, 0, 0, 0.8); display: none; justify-content: center; align-items: center; z-index: 20000;
+        opacity: 0; transition: opacity 0.2s ease;
+    }
+    .modal-overlay.active { display: flex; opacity: 1; }
+    .modal-content { 
+        background: #262626; width: 320px; border-radius: 16px; border: 1px solid #363636; 
+        text-align: center; overflow: hidden; transform: scale(0.95); transition: transform 0.2s ease;
+    }
+    .modal-overlay.active .modal-content { transform: scale(1); }
+    .modal-opt { 
+        padding: 16px; display: block; text-decoration: none; color: #f1f5f9; 
+        border-top: 1px solid #363636; cursor: pointer; font-size: 14px; transition: background 0.2s;
+    }
+    .modal-opt:hover { background: #121212; }
+    .modal-opt.danger { color: #f87171; font-weight: 700; background: none; border: none; width: 100%; border-top: 1px solid #363636;}
 </style>
 
 <div class="main-container">
@@ -228,7 +247,12 @@
                         {% endif %}
                         <span style="font-weight:600; font-size:14px;">{{ post.user.username }}</span>
                     </a>
-                    <i class='bx bx-dots-horizontal-rounded' style="margin-left:auto; cursor:pointer;"></i>
+                    
+                    {% if post.user != request.user %}
+                        <i class='bx bx-dots-horizontal-rounded' style="margin-left:auto; cursor:pointer;" onclick="openBlockModal({{ post.user.id }}, '{{ post.user.username }}')"></i>
+                    {% else %}
+                        <i class='bx bx-dots-horizontal-rounded' style="margin-left:auto; color: #555;" title="Your post"></i>
+                    {% endif %}
                 </div>
 
                 <div class="post-image" style="width: 100%;">
@@ -248,8 +272,8 @@
                     
                     <i id="post-save-icon-{{ post.id }}" 
                        class='bx {% if request.user in post.saved_by.all %}bxs-bookmark{% else %}bx-bookmark{% endif %}' 
-                       onclick="savePost({{ post.id }})" 
-                       style="margin-left:auto; cursor:pointer; transition: transform 0.1s;">
+                       onclick="bookmarkPost({{ post.id }})" 
+                       style="margin-left:auto; cursor:pointer; transition: transform 0.1s; {% if request.user in post.saved_by.all %}color: #fff;{% endif %}">
                     </i>
                 </div>
 
@@ -282,7 +306,7 @@
                             <div class="comment-text"><strong>{{ comment.user.username }}</strong> {{ comment.text }}</div>
                         </div>
                         {% empty %}
-                        <div class="comment-item" style="color: #888; justify-content:center; padding-top:20px;">No comments yet.</div>
+                        <div class="comment-item empty-msg" style="color: #888; justify-content:center; padding-top:20px;">No comments yet.</div>
                         {% endfor %}
                     </div>
                     <div class="comment-input-area">
@@ -412,10 +436,35 @@
     </div>
 </div>
 
+<div class="modal-overlay" id="blockModal">
+    <div class="modal-content">
+        <div style="padding: 25px 15px;">
+            <h3 style="margin:0 0 10px 0; color:#fff;" id="blockModalTitle">Block User?</h3>
+            <p style="color: #a8a8a8; font-size: 13px; margin:0;">They won't be able to find your profile, posts or story on Vibe.</p>
+        </div>
+        <button class="modal-opt danger" id="confirmBlockBtn" onclick="submitBlock()">Block</button>
+        <div class="modal-opt" onclick="closeBlockModal()">Cancel</div>
+    </div>
+</div>
+
 <script>
     function getCsrfToken() {
-        const el = document.querySelector('[name=csrfmiddlewaretoken]');
-        return el ? el.value : '';
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, 10) === ('csrftoken=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(10));
+                    break;
+                }
+            }
+        }
+        if (!cookieValue) {
+            const el = document.querySelector('[name=csrfmiddlewaretoken]');
+            cookieValue = el ? el.value : '';
+        }
+        return cookieValue;
     }
 
     const overlay = document.getElementById('feedOverlay');
@@ -424,6 +473,58 @@
         document.querySelectorAll('.bottom-sheet').forEach(sheet => sheet.classList.remove('active'));
         if (overlay) overlay.classList.remove('active');
     }
+
+    // --- NEW: BLOCK MODAL LOGIC ---
+    let userToBlockId = null;
+
+    function openBlockModal(userId, username) {
+        userToBlockId = userId;
+        document.getElementById('blockModalTitle').innerText = `Block @${username}?`;
+        document.getElementById('blockModal').classList.add('active');
+    }
+
+    function closeBlockModal() {
+        userToBlockId = null;
+        document.getElementById('blockModal').classList.remove('active');
+    }
+
+    function submitBlock() {
+        if(!userToBlockId) return;
+        
+        const btn = document.getElementById('confirmBlockBtn');
+        btn.innerText = "Blocking...";
+        
+        fetch(`/block/${userToBlockId}/`, {
+            method: 'POST',
+            headers: { 
+                'X-CSRFToken': getCsrfToken(), 
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.status === 'success') {
+                // Instantly reload the page. Since we update views.py, their posts will be gone!
+                window.location.reload(); 
+            } else {
+                alert('Error blocking user');
+                btn.innerText = "Block";
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            alert("Network error.");
+            btn.innerText = "Block";
+        });
+    }
+
+    // Close block modal if clicked outside
+    document.addEventListener('click', (e) => {
+        const blockModal = document.getElementById('blockModal');
+        if (e.target === blockModal) closeBlockModal();
+    });
+
 
     // --- SEARCH DROPDOWN LOGIC ---
     const searchInput = document.getElementById('topSearchInput');
@@ -434,7 +535,6 @@
             searchDropdown.classList.add('show');
         });
 
-        // Hide dropdown when clicking outside of it
         document.addEventListener('click', (e) => {
             if (!searchInput.contains(e.target) && !searchDropdown.contains(e.target)) {
                 searchDropdown.classList.remove('show');
@@ -458,9 +558,13 @@
                 'X-CSRFToken': getCsrfToken(), 
                 'Content-Type': 'application/json',
                 'X-Requested-With': 'XMLHttpRequest' 
-            }
+            },
+            body: JSON.stringify({}) // Explicitly add empty JSON body
         })
-        .then(res => res.json())
+        .then(res => {
+            if(!res.ok) throw new Error("HTTP error " + res.status);
+            return res.json();
+        })
         .then(data => {
             if (originalText === "Follow") {
                 btnElement.innerText = "Following";
@@ -494,9 +598,17 @@
 
         fetch(`/api/posts/${postId}/like/`, {  
             method: 'POST',
-            headers: { 'X-CSRFToken': getCsrfToken(), 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+            headers: { 
+                'X-CSRFToken': getCsrfToken(), 
+                'Content-Type': 'application/json', 
+                'X-Requested-With': 'XMLHttpRequest' 
+            },
+            body: JSON.stringify({}) // Explicitly add empty JSON body
         })
-        .then(res => res.json())
+        .then(res => {
+            if(!res.ok) throw new Error("HTTP error " + res.status);
+            return res.json();
+        })
         .then(data => {
             if(data.status === 'success') {
                 const countElement = document.getElementById(`post-like-count-${postId}`);
@@ -510,32 +622,46 @@
                 alert("Like Action Failed: " + data.message);
             }
         }).catch(err => {
-            alert("Network error. Make sure your Django server is running and URLs are correct.");
+            console.error(err);
+            alert("Network error processing like.");
         });
     }
 
-    // --- SAVE POST FUNCTION ---
-    function savePost(postId) {
+    // --- BOOKMARK POST FUNCTION ---
+    function bookmarkPost(postId) {
         const icon = document.getElementById(`post-save-icon-${postId}`);
         icon.style.transform = "scale(1.2)";
         setTimeout(() => icon.style.transform = "scale(1)", 150);
 
         fetch(`/api/posts/${postId}/save/`, {
             method: 'POST',
-            headers: { 'X-CSRFToken': getCsrfToken(), 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+            headers: { 
+                'X-CSRFToken': getCsrfToken(), 
+                'Content-Type': 'application/json', 
+                'X-Requested-With': 'XMLHttpRequest' 
+            },
+            body: JSON.stringify({})  
         })
-        .then(res => res.json())
+        .then(res => {
+            if(!res.ok) throw new Error("HTTP error " + res.status);
+            return res.json();
+        })
         .then(data => {
             if(data.status === 'success') {
                 if (data.saved) {
                     icon.classList.remove('bx-bookmark'); icon.classList.add('bxs-bookmark');
+                    icon.style.color = '#fff';
                 } else {
                     icon.classList.remove('bxs-bookmark'); icon.classList.add('bx-bookmark');
+                    icon.style.color = '';
                 }
             } else {
                 alert("Save Failed: " + data.message);
             }
-        }).catch(err => alert("Network error trying to bookmark post."));
+        }).catch(err => {
+            console.error(err);
+            alert("Network error trying to bookmark post.");
+        });
     }
 
     // --- COMMENTS MODAL LOGIC ---
@@ -556,15 +682,25 @@
 
         fetch(`/api/posts/${postId}/comment/`, {
             method: 'POST',
-            headers: { 'X-CSRFToken': getCsrfToken(), 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+            headers: { 
+                'X-CSRFToken': getCsrfToken(), 
+                'Content-Type': 'application/json', 
+                'X-Requested-With': 'XMLHttpRequest' 
+            },
             body: JSON.stringify({ text: text })
         })
-        .then(res => res.json())
+        .then(res => {
+            if(!res.ok) throw new Error("HTTP error " + res.status);
+            return res.json();
+        })
         .then(data => {
             if(data.status === 'success') {
                 inputField.value = '';
                 const list = document.getElementById(`post-comments-list-${postId}`);
-                if(list.innerText.includes("No comments yet")) { list.innerHTML = ''; }
+                
+                const emptyMsg = list.querySelector('.empty-msg');
+                if (emptyMsg) emptyMsg.remove();
+                
                 list.innerHTML += `
                     <div class="comment-item">
                         <div class="comment-avatar"><img src="https://ui-avatars.com/api/?name=${data.username}&background=444&color=fff" style="width:100%; height:100%; border-radius:50%;"></div>
@@ -575,10 +711,13 @@
             } else {
                 alert("Could not post comment: " + data.message);
             }
-        }).catch(err => alert("Network error posting comment."));
+        }).catch(err => {
+            console.error(err);
+            alert("Network error posting comment.");
+        });
     }
 
-    // --- SHARE MODAL LOGIC (FIXED) ---
+    // --- SHARE MODAL LOGIC ---
     function togglePostShare(postId) {
         const sheet = document.getElementById(`post-share-sheet-${postId}`);
         const isActive = sheet.classList.contains('active');
@@ -596,16 +735,19 @@
         btn.innerText = "Sending..."; 
         btn.disabled = true;
 
-        // FIXED: This now properly points to your share URL, NOT /create_post/
         fetch(`/api/posts/${postId}/share/${threadId}/`, {
             method: 'POST',
             headers: { 
                 'X-CSRFToken': getCsrfToken(), 
                 'Content-Type': 'application/json', 
                 'X-Requested-With': 'XMLHttpRequest' 
-            }
+            },
+            body: JSON.stringify({}) 
         })
-        .then(res => res.json())
+        .then(res => {
+            if(!res.ok) throw new Error("HTTP error " + res.status);
+            return res.json();
+        })
         .then(data => {
             if(data.status === 'success') {
                 btn.style.backgroundColor = "transparent"; 
@@ -626,50 +768,10 @@
                 btn.disabled = false;
             }
         }).catch(err => {
+            console.error(err);
             alert("Network error trying to share post.");
             btn.innerText = originalText;
             btn.disabled = false;
-        });
-    }
-
-    // --- CREATE POST LOGIC (Separated & Using FormData to prevent 400 Errors) ---
-    function createPost() {
-        const imageInput = document.getElementById('post-image-data'); 
-        const captionInput = document.getElementById('post-caption-input');
-        
-        if (!imageInput || !imageInput.files || imageInput.files.length === 0) {
-            alert("Please select an image first.");
-            return;
-        }
-
-        // Using FormData is required by Django for file uploads via request.FILES
-        const formData = new FormData();
-        formData.append('image', imageInput.files[0]);
-        formData.append('caption', captionInput ? captionInput.value : '');
-
-        fetch("/create_post/", {
-            method: "POST",
-            headers: {
-                // Do NOT set "Content-Type": "application/json" here. 
-                // The browser will automatically set it to multipart/form-data
-                "X-CSRFToken": getCsrfToken()
-            },
-            body: formData
-        })
-        .then(response => {
-            if (!response.ok) throw new Error("Server returned " + response.status);
-            return response.json();
-        })
-        .then(data => {
-            if(data.status === 'success') {
-                window.location.reload(); 
-            } else {
-                alert("Error creating post: " + data.message);
-            }
-        })
-        .catch(error => {
-            console.error("Fetch error:", error);
-            alert("Failed to create post. Check console for details.");
         });
     }
 </script>

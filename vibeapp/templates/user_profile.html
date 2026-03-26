@@ -281,7 +281,7 @@
                             </div>
                         </div>
                     {% empty %}
-                        <div class="empty"><h2>No Reels Yet</h2></div>
+                        <div class="empty" style="grid-column: 1 / -1; padding: 20px 0;"><h2>No Reels Yet</h2></div>
                     {% endfor %}
                 </div>
             {% else %}
@@ -292,8 +292,24 @@
         {% if request.user == target_user %}
         <div class="content" id="saved">
             <p style="text-align: center; color: #a8a8a8; font-size: 13px; margin: 15px 0;">Only you can see what you've saved</p>
-            <div class="grid">
-                {% for reel in target_user.saved_reels.all %}
+            
+            <h4 style="color: white; margin: 20px 0 10px 0; padding-left: 5px;">Saved Posts</h4>
+            <div class="grid" id="saved-posts-container">
+                {% for post in saved_posts %}
+                    <div class="grid-item saved-post-item" id="saved-post-{{ post.id }}" style="aspect-ratio: 1/1;">
+                        <img src="{{ post.image.url }}" alt="Post">
+                        <button class="unsave-btn" onclick="unsaveProfilePost({{ post.id }})" title="Remove from Saved">
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z"></path></svg>
+                        </button>
+                    </div>
+                {% empty %}
+                    <div class="empty" style="grid-column: 1 / -1; padding: 20px 0;"><h2>No Saved Posts</h2></div>
+                {% endfor %}
+            </div>
+
+            <h4 style="color: white; margin: 30px 0 10px 0; padding-left: 5px;">Saved Reels</h4>
+            <div class="grid" id="saved-reels-container">
+                {% for reel in saved_reels %}
                     <div class="grid-item saved-reel-item" id="saved-reel-{{ reel.id }}" style="aspect-ratio: 9/16;">
                         <video src="{{ reel.video.url }}" muted loop onmouseover="this.play()" onmouseout="this.pause()"></video>
                         
@@ -302,7 +318,7 @@
                         </button>
                     </div>
                 {% empty %}
-                    <div class="empty"><h2>No Saved Reels</h2></div>
+                    <div class="empty" style="grid-column: 1 / -1; padding: 20px 0;"><h2>No Saved Reels</h2></div>
                 {% endfor %}
             </div>
         </div>
@@ -354,9 +370,43 @@
 
 {% block extra_js %}
 <script>
-    // --- NEW: UNSAVE FUNCTION FOR PROFILE PAGE ---
+    // --- NEW: UNSAVE POST FUNCTION FOR PROFILE PAGE ---
+    function unsaveProfilePost(postId) {
+        const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        
+        fetch(`/api/posts/${postId}/save/`, {
+            method: 'POST',
+            headers: { 
+                'X-CSRFToken': csrftoken, 
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({})
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.status === 'success' && data.saved === false) {
+                const postElement = document.getElementById(`saved-post-${postId}`);
+                if(postElement) {
+                    postElement.style.transition = "transform 0.3s ease, opacity 0.3s ease";
+                    postElement.style.transform = "scale(0.8)";
+                    postElement.style.opacity = "0";
+                    
+                    setTimeout(() => {
+                        postElement.remove();
+                        const savedGrid = document.getElementById('saved-posts-container');
+                        if (savedGrid && savedGrid.children.length === 0) {
+                            savedGrid.innerHTML = '<div class="empty" style="grid-column: 1 / -1; padding: 20px 0;"><h2>No Saved Posts</h2></div>';
+                        }
+                    }, 300);
+                }
+            }
+        })
+        .catch(err => console.error("Error unsaving post:", err));
+    }
+
+    // --- UNSAVE REEL FUNCTION FOR PROFILE PAGE ---
     function unsaveProfileReel(reelId) {
-        // Grab the CSRF token from one of the existing forms on the page
         const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
         
         fetch(`/api/reels/${reelId}/save/`, {
@@ -370,21 +420,17 @@
         .then(res => res.json())
         .then(data => {
             if(data.status === 'success' && data.saved === false) {
-                // If the backend confirms it was unsaved, animate it away!
                 const reelElement = document.getElementById(`saved-reel-${reelId}`);
                 if(reelElement) {
                     reelElement.style.transition = "transform 0.3s ease, opacity 0.3s ease";
                     reelElement.style.transform = "scale(0.8)";
                     reelElement.style.opacity = "0";
                     
-                    // Remove it from the HTML completely after the animation finishes
                     setTimeout(() => {
                         reelElement.remove();
-                        
-                        // Check if the grid is now empty and show the empty state message
-                        const savedGrid = document.querySelector('#saved .grid');
+                        const savedGrid = document.getElementById('saved-reels-container');
                         if (savedGrid && savedGrid.children.length === 0) {
-                            savedGrid.innerHTML = '<div class="empty" style="grid-column: 1 / -1;"><h2>No Saved Reels</h2></div>';
+                            savedGrid.innerHTML = '<div class="empty" style="grid-column: 1 / -1; padding: 20px 0;"><h2>No Saved Reels</h2></div>';
                         }
                     }, 300);
                 }
